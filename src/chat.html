@@ -794,6 +794,58 @@ body {
   animation: pulse 2.5s ease-in-out infinite;
 }
 
+/* Mobile online dropdown */
+.mobile-users-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px;
+  margin-top: 8px;
+  min-width: 180px;
+  max-width: 280px;
+  box-shadow: 0 8px 24px var(--shadow);
+  z-index: 400;
+  display: none;
+}
+
+.mobile-users-dropdown.show {
+  display: block;
+}
+
+.mobile-users-dropdown .dropdown-title {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+.mobile-users-dropdown .dropdown-user {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  font-size: 13px;
+  border-radius: 6px;
+}
+
+.mobile-users-dropdown .dropdown-user:hover {
+  background: var(--surface-hover);
+}
+
+.mobile-users-dropdown .dropdown-user .user-dot {
+  width: 7px;
+  height: 7px;
+  background: var(--online);
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
 /* ===== MOBILE ===== */
 @media (max-width: 680px) {
   .roster-panel {
@@ -838,6 +890,11 @@ body {
 
   .share-btn {
     padding: 6px 8px;
+    display: none;
+  }
+
+  .share-btn.visible {
+    display: flex !important;
   }
 
   .share-btn span:last-child {
@@ -1022,6 +1079,10 @@ button:focus-visible {
     <div id="mobile-online" class="mobile-online">
       <span class="online-dot"></span>
       <span id="mobile-count">0</span>
+    </div>
+    <div id="mobile-users-dropdown" class="mobile-users-dropdown">
+      <div class="dropdown-title" data-i18n="online_now">Online</div>
+      <div id="mobile-users-list"></div>
     </div>
   </div>
   <div class="header-right">
@@ -1535,6 +1596,36 @@ function renderRoster() {
       ${esc(user)}
     </div>
   `).join('');
+
+  // Update mobile dropdown
+  const mobileList = document.getElementById('mobile-users-list');
+  if (mobileList) {
+    if (rosterUsers.length === 0) {
+      mobileList.innerHTML = `<div class="dropdown-user" style="color:var(--text-muted);font-size:12px">${currentLang === 'zh' ? '无用户在线' : 'No users'}</div>`;
+    } else {
+      mobileList.innerHTML = rosterUsers.map(user => `
+        <div class="dropdown-user">
+          <span class="user-dot"></span>
+          ${esc(user)}
+        </div>
+      `).join('');
+    }
+  }
+}
+
+// Mobile online dropdown click handler
+const mobileOnline = document.getElementById('mobile-online');
+const mobileDropdown = document.getElementById('mobile-users-dropdown');
+
+if (mobileOnline && mobileDropdown) {
+  mobileOnline.style.cursor = 'pointer';
+  mobileOnline.addEventListener('click', e => {
+    e.stopPropagation();
+    mobileDropdown.classList.toggle('show');
+  });
+  document.addEventListener('click', () => {
+    mobileDropdown.classList.remove('show');
+  });
 }
 
 // Init
