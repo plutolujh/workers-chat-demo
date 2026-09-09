@@ -707,6 +707,27 @@ body {
   display: flex;
 }
 
+/* ===== MOBILE ONLINE COUNT ===== */
+.mobile-online {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--surface-hover);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 4px 10px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.mobile-online .online-dot {
+  width: 6px;
+  height: 6px;
+  background: var(--online);
+  border-radius: 50%;
+  animation: pulse 2.5s ease-in-out infinite;
+}
+
 /* ===== MOBILE ===== */
 @media (max-width: 680px) {
   .roster-panel {
@@ -866,6 +887,10 @@ body {
     border-radius: 20px 20px 0 0;
     padding-bottom: max(20px, env(safe-area-inset-bottom));
   }
+
+  .mobile-online {
+    display: flex !important;
+  }
 }
 
 /* ===== REDUCED MOTION ===== */
@@ -901,6 +926,10 @@ button:focus-visible {
       <span>🔗</span>
       <span data-i18n="share">分享</span>
     </button>
+    <div id="mobile-online" class="mobile-online" style="display:none">
+      <span class="online-dot"></span>
+      <span id="mobile-count">0</span>
+    </div>
   </div>
   <div class="header-right">
     <div class="theme-switcher">
@@ -1369,6 +1398,8 @@ function clearRoster() {
 
 function renderRoster() {
   rosterCount.textContent = rosterUsers.length;
+  const mobileCount = document.getElementById('mobile-count');
+  if (mobileCount) mobileCount.textContent = rosterUsers.length;
   rosterList.innerHTML = rosterUsers.map(user => `
     <div class="roster-user">
       <span class="user-dot"></span>
