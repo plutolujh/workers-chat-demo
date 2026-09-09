@@ -106,6 +106,23 @@ p:last-of-type {
   background-color: white;
 }
 
+#lang-switch {
+  position: fixed;
+  top: 8px;
+  right: 8px;
+  z-index: 10;
+  font-size: 14px;
+  padding: 4px 8px;
+  border: 1px solid #bbb;
+  border-radius: 4px;
+  background: white;
+  cursor: pointer;
+}
+
+#lang-switch:hover {
+  background: #f0f0f0;
+}
+
 #name-input {
   position: fixed;
   font-size: 200%;
@@ -176,16 +193,20 @@ p:last-of-type {
 
   </head>
   <body>
+    <select id="lang-switch">
+      <option value="en">EN</option>
+      <option value="zh">中文</option>
+    </select>
     <form id="name-form" action="/fake-form-action">
       <input id="name-input" placeholder="your name">
-      <p>This chat runs entirely on the edge, powered by<br>
+      <p data-i18n="powered_by">This chat runs entirely on the edge, powered by<br>
         <a href="https://blog.cloudflare.com/introducing-workers-durable-objects" target="_blank">Cloudflare Workers Durable Objects</a></p>
     </form>
     <form id="room-form" action="/fake-form-action">
-      <p>Enter a public room:</p>
+      <p data-i18n="enter_public_room">Enter a public room:</p>
       <input id="room-name" placeholder="room name"><button id="go-public">Go &raquo;</button>
       <p>OR</p>
-      <button id="go-private">Create a Private Room &raquo;</button>
+      <button id="go-private" data-i18n="create_private">Create a Private Room &raquo;</button>
     </form>
     <form id="chatroom" action="/fake-form-action">
       <div id="chatlog">
@@ -200,6 +221,52 @@ p:last-of-type {
 <!-- Client-side JavaScript code for the app. -->
 
 <script type="text/javascript">
+// i18n translations
+const i18n = {
+  en: {
+    powered_by: 'This chat runs entirely on the edge, powered by<br><a href="https://blog.cloudflare.com/introducing-workers-durable-objects" target="_blank">Cloudflare Workers Durable Objects</a>',
+    enter_public_room: 'Enter a public room:',
+    create_private: 'Create a Private Room »',
+    invalid_room: 'Invalid room name.',
+    demo_app: '* This is a demo app built with Cloudflare Workers Durable Objects. The source code can be found at: https://github.com/cloudflare/workers-chat-demo',
+    warning: '* WARNING: Participants in this chat are random people on the internet. Names are not authenticated; anyone can pretend to be anyone. The people you are chatting with are NOT Cloudflare employees. Chat history is saved.',
+    private_room: '* This is a private room. You can invite someone to the room by sending them the URL.',
+    welcome: '* Welcome to #',
+    say_hi: '. Say hi!',
+    error_prefix: '* Error: ',
+    rate_limited: 'Your IP is being rate-limited, please try again later.',
+    name_too_long: 'Name too long.',
+    message_too_long: 'Message too long.'
+  },
+  zh: {
+    powered_by: '此聊天完全运行在边缘，由以下技术驱动<br><a href="https://blog.cloudflare.com/introducing-workers-durable-objects" target="_blank">Cloudflare Workers Durable Objects</a>',
+    enter_public_room: '进入公开房间：',
+    create_private: '创建私密房间 »',
+    invalid_room: '无效的房间名称。',
+    demo_app: '* 这是一个基于 Cloudflare Workers Durable Objects 构建的演示应用。源代码：https://github.com/cloudflare/workers-chat-demo',
+    warning: '* 警告：此聊天中的参与者是随机的网民。名称未经过认证，任何人都可以冒充任何人。您正在与之聊天的人不是 Cloudflare 员工。聊天记录会被保存。',
+    private_room: '* 这是私密房间。您可以发送链接邀请他人加入。',
+    welcome: '* 欢迎来到 #',
+    say_hi: '。打个招呼吧！',
+    error_prefix: '* 错误：',
+    rate_limited: '您的 IP 已被限速，请稍后再试。',
+    name_too_long: '名称过长。',
+    message_too_long: '消息过长。'
+  }
+};
+
+let currentLang = localStorage.getItem('chat-lang') || 'en';
+
+function t(key) {
+  return i18n[currentLang][key] || i18n['en'][key] || key;
+}
+
+function updateI18n() {
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    el.innerHTML = t(el.dataset.i18n);
+  });
+}
+
 let currentWebSocket = null;
 
 let nameForm = document.querySelector("#name-form");
@@ -224,6 +291,15 @@ if (hostname == "") {
   // Probably testing the HTML locally.
   hostname = "edge-chat-demo.cloudflareworkers.com";
 }
+
+// Language switcher
+let langSwitch = document.querySelector("#lang-switch");
+langSwitch.value = currentLang;
+langSwitch.addEventListener("change", event => {
+  currentLang = event.target.value;
+  localStorage.setItem('chat-lang', currentLang);
+  updateI18n();
+});
 
 function startNameChooser() {
   nameForm.addEventListener("submit", event => {
@@ -299,7 +375,7 @@ function startChat() {
   roomname = roomname.replace(/[^a-zA-Z0-9_-]/g, "").replace(/_/g, "-").toLowerCase();
 
   if (roomname.length > 32 && !roomname.match(/^[0-9a-f]{64}$/)) {
-    addChatMessage("ERROR", "Invalid room name.");
+    addChatMessage("ERROR", t('invalid_room'));
     return;
   }
 
@@ -407,7 +483,7 @@ function join() {
     let data = JSON.parse(event.data);
 
     if (data.error) {
-      addChatMessage(null, "* Error: " + data.error);
+      addChatMessage(null, t('error_prefix') + data.error);
     } else if (data.joined) {
       let p = document.createElement("p");
       p.innerText = data.joined;
@@ -423,19 +499,12 @@ function join() {
       // All pre-join messages have been delivered.
       if (!wroteWelcomeMessages) {
         wroteWelcomeMessages = true;
-        addChatMessage(null,
-            "* This is a demo app built with Cloudflare Workers Durable Objects. The source code " +
-            "can be found at: https://github.com/cloudflare/workers-chat-demo");
-        addChatMessage(null,
-            "* WARNING: Participants in this chat are random people on the internet. " +
-            "Names are not authenticated; anyone can pretend to be anyone. The people " +
-            "you are chatting with are NOT Cloudflare employees. Chat history is saved.");
+        addChatMessage(null, t('demo_app'));
+        addChatMessage(null, t('warning'));
         if (roomname.length == 64) {
-          addChatMessage(null,
-              "* This is a private room. You can invite someone to the room by sending them the URL.");
+          addChatMessage(null, t('private_room'));
         } else {
-          addChatMessage(null,
-              "* Welcome to #" + roomname + ". Say hi!");
+          addChatMessage(null, t('welcome') + roomname + t('say_hi'));
         }
       }
     } else {
