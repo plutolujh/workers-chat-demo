@@ -714,19 +714,157 @@ body {
   }
 
   .header {
-    padding: 10px 14px;
+    padding: 8px 12px;
+  }
+
+  .header-left {
+    gap: 8px;
+  }
+
+  .logo {
+    font-size: 15px;
+  }
+
+  .logo-icon {
+    width: 26px;
+    height: 26px;
+    font-size: 14px;
   }
 
   .room-badge {
     display: none;
   }
 
+  .share-btn {
+    padding: 5px 8px;
+    font-size: 12px;
+  }
+
+  .share-btn span:first-child {
+    font-size: 12px;
+  }
+
+  .theme-switcher {
+    display: none;
+  }
+
+  .lang-select {
+    padding: 5px 8px;
+    font-size: 12px;
+  }
+
+  .header-right {
+    gap: 8px;
+  }
+
   .chat-messages {
-    padding: 12px 14px;
+    padding: 10px 12px;
   }
 
   .input-area {
-    padding: 10px 14px;
+    padding: 8px 12px;
+  }
+
+  .input-row {
+    border-radius: 10px;
+    padding: 3px 3px 3px 12px;
+  }
+
+  .send-btn {
+    width: 32px;
+    height: 32px;
+    font-size: 14px;
+  }
+
+  .msg {
+    padding: 5px 6px;
+    gap: 8px;
+  }
+
+  .msg-avatar {
+    width: 30px;
+    height: 30px;
+    font-size: 12px;
+  }
+
+  .msg-name {
+    font-size: 13px;
+  }
+
+  .msg-text {
+    font-size: 14px;
+  }
+
+  .msg-time {
+    font-size: 10px;
+  }
+
+  .modal {
+    padding: 24px 20px;
+    border-radius: 16px;
+    margin: 12px;
+  }
+
+  .modal-icon {
+    width: 44px;
+    height: 44px;
+    font-size: 20px;
+  }
+
+  .modal-title {
+    font-size: 20px;
+  }
+
+  .modal-sub {
+    font-size: 13px;
+  }
+
+  .modal-input {
+    padding: 12px 14px;
+    font-size: 15px;
+  }
+
+  .rules-box {
+    max-height: 180px;
+    padding: 12px;
+    margin-bottom: 16px;
+  }
+
+  .rules-list li {
+    font-size: 12px;
+    padding: 5px 8px;
+  }
+
+  .share-link-box {
+    flex-direction: column;
+  }
+
+  .share-link-box .modal-input {
+    font-size: 11px;
+  }
+
+  .overlay {
+    padding: 0;
+    align-items: flex-end;
+  }
+
+  .overlay.hidden {
+    display: none;
+  }
+}
+
+/* Mobile bottom sheet style for modals */
+@media (max-width: 680px) {
+  .overlay {
+    align-items: flex-end;
+    justify-content: center;
+  }
+
+  .modal {
+    width: 100%;
+    max-width: 100%;
+    border-radius: 20px 20px 0 0;
+    padding-bottom: max(20px, env(safe-area-inset-bottom));
   }
 }
 
