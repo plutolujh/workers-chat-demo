@@ -817,7 +817,7 @@ button:focus-visible {
       <div class="rules-note" data-i18n="rules_note">违反规则将被禁言或封禁IP</div>
     </div>
     <form id="name-form">
-      <input type="text" id="name-input" class="modal-input" placeholder="Your name" maxlength="32" autocomplete="off" required>
+      <input type="text" id="name-input" class="modal-input" data-i18n-placeholder="name_placeholder" placeholder="Your name" maxlength="32" autocomplete="off" required>
       <button type="submit" class="modal-btn" data-i18n="continue">Continue</button>
     </form>
   </div>
@@ -889,6 +889,7 @@ const i18n = {
     share_note: 'Only people with this link can join',
     enter_room: 'Enter Room',
     link_copied: 'Link copied!',
+    name_placeholder: 'Your name',
   },
   zh: {
     name_title: '加入聊天',
@@ -923,6 +924,7 @@ const i18n = {
     share_note: '只有获得链接的人才能加入',
     enter_room: '进入房间',
     link_copied: '链接已复制！',
+    name_placeholder: '你的名字',
   }
 };
 
@@ -978,6 +980,9 @@ function t(key) {
 function updateI18n() {
   document.querySelectorAll('[data-i18n]').forEach(el => {
     el.textContent = t(el.dataset.i18n);
+  });
+  document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+    el.placeholder = t(el.dataset.i18nPlaceholder);
   });
   chatInput.placeholder = t('type_placeholder');
 }
