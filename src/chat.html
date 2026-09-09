@@ -1300,8 +1300,21 @@ const emojis = ['😀','😃','😄','😁','😆','😅','🤣','😂','🙂','
 
 // ===== RANDOM NAME GENERATOR =====
 function generateRandomName() {
-  const animals = ['🐱','🐶','🐰','🦊','🐻','🐼','🐨','🦁','🐯','🐸'];
-  const adj = ['happy','clever','brave','quiet','wild','calm','bold','kind','quick','warm'];
+  // 12 Chinese zodiac + 10 cute animals = 22 animals total
+  const animals = [
+    '🐀','🐂','🐅','🐇','🐉','🐍','🐎','🐐','🐒','🐓','🐕','🐖',  // Chinese zodiac
+    '🐱','🐶','🐰','🦊','🐻','🐼','🐨','🦁','🐯','🐸'  // Cute animals
+  ];
+
+  // 50+ adjectives for 1100+ combinations (22 × 50 = 1100)
+  const adj = [
+    'happy','clever','brave','quiet','wild','calm','bold','kind','quick','warm',
+    'smart','gentle','happy','bright','lucky','swift','strong','sweet','cool','free',
+    'proud','peace','dream','fancy','fluffy','golden','silent','silver','cosmic','mystic',
+    'noble','prince','queen','royal','spirit','spark','starry','sunny','brave','dreamy',
+    'magic','lunar','solar','swift','zesty','azure','amber','jade','ruby','pearl'
+  ];
+
   const animal = animals[Math.floor(Math.random() * animals.length)];
   const a = adj[Math.floor(Math.random() * adj.length)];
   return `${animal} ${a}`;
@@ -1594,13 +1607,26 @@ function addMsg(name, text, type = '') {
   if (type === 'system' || type === 'error') {
     div.innerHTML = `<div class="msg-text">${esc(text)}</div>`;
   } else {
-    const initial = name ? name.charAt(0).toUpperCase() : '?';
+    // Check if name starts with emoji (has icon + short name format)
+    const emojiMatch = name ? name.match(/^([\u{1F300}-\u{1F9FF}])(.+)/u) : null;
+    let displayName = name;
+    let avatarContent = '';
+
+    if (emojiMatch) {
+      // Format: 🐀 [lucky] - icon + short name in brackets
+      displayName = `${emojiMatch[1]} [${emojiMatch[2].trim()}]`;
+      avatarContent = esc(emojiMatch[1]);
+    } else {
+      const initial = name ? name.charAt(0).toUpperCase() : '?';
+      avatarContent = esc(initial);
+    }
+
     const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     div.innerHTML = `
-      <div class="msg-avatar">${esc(initial)}</div>
+      <div class="msg-avatar">${avatarContent}</div>
       <div class="msg-body">
         <div class="msg-header">
-          <span class="msg-name">${esc(name)}</span>
+          <span class="msg-name">${esc(displayName)}</span>
           <span class="msg-time">${time}</span>
         </div>
         <div class="msg-text">${esc(text)}</div>
@@ -1637,6 +1663,14 @@ function clearRoster() {
   renderRoster();
 }
 
+function formatDisplayName(name) {
+  const emojiMatch = name ? name.match(/^([\u{1F300}-\u{1F9FF}])(.+)/u) : null;
+  if (emojiMatch) {
+    return `${emojiMatch[1]} [${emojiMatch[2].trim()}]`;
+  }
+  return name;
+}
+
 function renderRoster() {
   rosterCount.textContent = rosterUsers.length;
   const mobileCount = document.getElementById('mobile-count');
@@ -1644,7 +1678,7 @@ function renderRoster() {
   rosterList.innerHTML = rosterUsers.map(user => `
     <div class="roster-user">
       <span class="user-dot"></span>
-      ${esc(user)}
+      ${esc(formatDisplayName(user))}
     </div>
   `).join('');
 
@@ -1657,7 +1691,7 @@ function renderRoster() {
       mobileList.innerHTML = rosterUsers.map(user => `
         <div class="dropdown-user">
           <span class="user-dot"></span>
-          ${esc(user)}
+          ${esc(formatDisplayName(user))}
         </div>
       `).join('');
     }
