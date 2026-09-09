@@ -344,6 +344,7 @@ body {
   border-top: 1px solid var(--border);
   flex-shrink: 0;
   transition: background 0.3s ease, border-color 0.3s ease;
+  position: relative;
 }
 
 .input-row {
@@ -810,11 +811,15 @@ body {
 
   .header-center {
     flex: 1;
+    display: flex !important;
     justify-content: center;
   }
 
   .header-right {
+    display: flex;
+    align-items: center;
     gap: 6px;
+    flex-shrink: 0;
   }
 
   .logo {
