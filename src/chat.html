@@ -401,6 +401,64 @@ body {
   transform: scale(0.95);
 }
 
+/* ===== EMOJI PICKER ===== */
+.emoji-btn {
+  width: 32px;
+  height: 32px;
+  background: transparent;
+  border: none;
+  font-size: 18px;
+  cursor: pointer;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s;
+  flex-shrink: 0;
+}
+
+.emoji-btn:hover {
+  background: var(--surface-hover);
+}
+
+.emoji-picker {
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  right: 60px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 8px;
+  margin-bottom: 8px;
+  box-shadow: 0 8px 24px var(--shadow);
+  z-index: 50;
+}
+
+.emoji-grid {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 2px;
+  max-height: 160px;
+  overflow-y: auto;
+}
+
+.emoji-item {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: background 0.15s;
+}
+
+.emoji-item:hover {
+  background: var(--surface-hover);
+}
+
 /* ===== ROSTER (ONLINE USERS) ===== */
 .roster-panel {
   width: 200px;
@@ -953,7 +1011,11 @@ button:focus-visible {
       <div class="input-row">
         <span class="input-prompt">›</span>
         <input type="text" id="chat-input" placeholder="Type a message..." maxlength="256" autocomplete="off">
+        <button id="emoji-btn" class="emoji-btn" type="button">😊</button>
         <button id="send-btn" class="send-btn">➤</button>
+      </div>
+      <div id="emoji-picker" class="emoji-picker" style="display:none">
+        <div class="emoji-grid" id="emoji-grid"></div>
       </div>
     </div>
   </div>
@@ -1112,6 +1174,9 @@ let hostname = window.location.host || 'edge-chat-demo.plutolu.workers.dev';
 const chatMessages = document.getElementById('chat-messages');
 const chatInput = document.getElementById('chat-input');
 const sendBtn = document.getElementById('send-btn');
+const emojiBtn = document.getElementById('emoji-btn');
+const emojiPicker = document.getElementById('emoji-picker');
+const emojiGrid = document.getElementById('emoji-grid');
 const rosterList = document.getElementById('roster-list');
 const rosterCount = document.getElementById('roster-count');
 const roomBadge = document.getElementById('room-badge');
@@ -1123,6 +1188,9 @@ const shareLink = document.getElementById('share-link');
 const copyBtn = document.getElementById('copy-btn');
 const enterBtn = document.getElementById('enter-btn');
 const langSelect = document.getElementById('lang-select');
+
+// ===== EMOJI PICKER =====
+const emojis = ['😀','😃','😄','😁','😆','😅','🤣','😂','🙂','🙃','😉','😊','😇','🥰','😍','🤩','😘','😗','😚','😋','😛','😜','🤪','😝','🤑','🤗','🤭','🤫','🤔','🤐','🤨','😐','😑','😶','😏','😒','🙄','😬','🤥','😌','😔','😪','🤤','😴','😷','🤒','🤕','🤢','🤮','🤧','🥵','🥶','🥴','😵','🤯','🤠','🥳','😎','🤓','🧐','😕','😟','🙁','☹️','😮','😯','😲','😳','🥺','😦','😧','😨','😰','😥','😢','😭','😱','😖','😣','😞','😓','😩','😫','🥱','😤','😡','😠','🤬','😈','👿','💀','☠️','💩','🤡','👹','👺','👻','👽','👾','🤖','😺','😸','😹','😻','😼','😽','🙀','😿','😾','🙈','🙉','🙊','💋','💌','💘','💝','💖','💗','💓','💞','💕','💟','❣️','💔','❤️','🧡','💛','💚','💙','💜','🤎','🖤','🤍','💯','💢','💥','💫','💦','💨','🕳️','💣','💬','👋','🤚','🖐️','✋','🖖','👌','🤌','🤏','✌️','🤞','🤟','🤘','🤙','👈','👉','👆','🖕','👇','☝️','👍','👎','✊','👊','🤛','🤜','👏','🙌','👐','🤲','🤝','🙏','✍️','💅','🤳','💪','🦾','🦿','🦵','🦶','👂','🦻','👃','🧠','🫀','🫁','🦷','🦴','👀','👁️','👅','👄','👶','🧒','👦','👧','🧑','👱','👨','🧔','👩','🧓','👴','👵','🙍','🙋','🧏','🙇','🤦','🤷','👮','🕵️','💂','🥷','👷','🤴','👸','👳','👲','🧕','🤵','👰','🤰','🤱','👼','🎒','💼','🎒','👓','🕶️','🥽','🥼','🧥','👔','👕','👖','🧣','🧤','🧥','🧦','👗','👘','🥻','🩱','🩲','🩳','👙','👚','👛','👜','👝','🎒','👞','👟','🥾','�乐','👠','👡','👢','🩰','👑','👒','🎩','🎓','🧢','⛑️','📿','💄','💍','💎','🐵','🐒','🦍','🦧','🐶','🐕','🦮','🐩','🐺','🦊','🦁','🐯','🐱','🐈','🐈‍','🦁','🐨','🐼','🐻','🐻‍','❄️','🐨','🐰','🐔','🐧','🐦','🐤','🦆','🦅','🦉','🦇','🐺','🐗','🐴','🦄','🐝','🪱','🐛','🦋','🐌','🐞','🐜','🪰','🪲','🪳','🦟','🦗','🕷️','🕸️','🦂','🐢','🐍','🦎','🦖','🦕','🐙','🦑','🦐','🦞','🦀','🐡','🐠','🐟','🐬','🐳','🐋','🦈','🐊','🐅','🐆','🦓','🦍','🦧','🦣','🐘','🦛','🦏','🐪','🐫','🦒','🦘','🦬','🐃','🐂','🐄','🐎','🐖','🐏','🐑','🦙','🐐','🦌','🐕','🐩','🦮','🐈','🐓','🦃','🦚','🦜','🦢','🦩','🕊️','🐇','🦝','🦨','🦡','🦫','🦦','🦥','🐁','🐀','🐿️','🦔','🌵','🎄','🌲','🌳','🌴','🪵','🌱','🌿','☘️','🍀','🎍','🪴','🎋','🍃','🍂','🍁','🪹','🍄','🌾','💐','🌷','🌹','🥀','🌺','🌸','🌼','🌻','🌞','🌝','🌛','🌜','🌚','🌕','🌖','🌗','🌘','🌑','🌒','🌓','🌔','🌙','🌎','🌍','🌏','🪐','💫','⭐','🌟','✨','⚡','☄️','💥','🔥','🌪','🌈','☀️','🌤️','⛅','🌥','☁️','🌦','🌧','⛈','🌩','🌨','❄️','☃️','⛄','🌬','💨','🌫','🌪','🌀','🌁','🌊','💧','💦','🪨','🔥','💥','✨','⚡','☄️','💫','⭐','🌟','🎭','🩰','🎨','🎬','🎤','🎧','🎼','🎹','🥁','🪘','🎷','🎺','🎸','🪕','🎻','🎲','♟','🎯','🎳','🎮','🕹️','🎰','🧩','🪅','🪆','🪄','🎁','🎀','🎊','🎉','🎈','🏆','🏅','🥇','🥈','🥉','🏵','🎖️','🎗️','🎟️','🎫','🎪','🤹','🎭','🩱','🧗','🏋️','🤼','🤽','🤾','⛹️','🏌️','🏇','🚴','🚵','🤸','🏊','🤺','⛷️','🏂','🪂','🏋️','🤸','🚣','🛶','🛼','🛹','🚴','🚵','🏎️','🏍️','🛻','🛻','🚑','🚒','🚐','🛻','🚚','🚛','🚜','🛴','🚲','🛵','🏍️','🛺','🚨','🚔','🚍','🚘','🚖','🚡','🚠','🚟','🚃','🚋','🚞','🚝','🚄','🚅','🚈','🚂','🚆','🚇','🚊','🚉','✈️','🛫','🛬','🛩️','💺','🛰️','🚀','🛸','🚁','🛶','⛵','🚤','🛥️','🛳️','⛴','🚢','⚓','⛽','🚧','🚦','🚥','🗺️','🗿','🗽','🗼','🏰','🏯','🏟️','🎡','🎢','🎠','⛲','⛱','🏖️','🏝️','🏜️','🌋','⛰️','🏔️','🗻','🏕️','⛺','🛖','🏠','🏡','🏘️','🏚️','🏗️','🏭','🏢','🏬','🏣','🏤','🏥','🏦','🏨','🏪','🏫','🏩','💒','🏛️','⛪','🕌','🕍','🛕','🕋','⛩️','🛤️','🛣️','🗾','🗺️','🗻','🗼','🗽','🗿','🏔️','⛰️','🌋','🗻','🏝️','🏜️','🌅','🌄','🌠','🎇','🎆','🌌','🌉','🌁','🗾','🏞️','🏟️','🏛️','🏗️','🏘️','🏚️','🏠','🏡','🏡','🏠'];
 
 // ===== THEME =====
 function applyTheme(theme) {
@@ -1164,6 +1232,29 @@ langSelect.addEventListener('change', e => {
   updateI18n();
   if (wroteWelcomeMessages) {
     // Refresh welcome messages would go here
+  }
+});
+
+// ===== EMOJI PICKER =====
+emojis.forEach(emoji => {
+  const span = document.createElement('span');
+  span.className = 'emoji-item';
+  span.textContent = emoji;
+  span.addEventListener('click', () => {
+    chatInput.value += emoji;
+    chatInput.focus();
+    emojiPicker.style.display = 'none';
+  });
+  emojiGrid.appendChild(span);
+});
+
+emojiBtn.addEventListener('click', () => {
+  emojiPicker.style.display = emojiPicker.style.display === 'none' ? 'block' : 'none';
+});
+
+document.addEventListener('click', e => {
+  if (!emojiPicker.contains(e.target) && e.target !== emojiBtn) {
+    emojiPicker.style.display = 'none';
   }
 });
 
