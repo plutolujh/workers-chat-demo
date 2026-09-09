@@ -749,7 +749,7 @@ body {
 }
 
 /* ===== SHARE BUTTON IN HEADER ===== */
-.share-btn {
+.share-btn, .clear-btn {
   background: var(--surface-hover);
   border: 1px solid var(--border);
   border-radius: 8px;
@@ -769,7 +769,7 @@ body {
   border-color: var(--accent);
 }
 
-.share-btn.visible {
+.share-btn.visible, .clear-btn.visible {
   display: flex;
 }
 
@@ -888,12 +888,12 @@ body {
     display: none !important;
   }
 
-  .share-btn {
+  .share-btn, .clear-btn {
     padding: 6px 8px;
     display: none;
   }
 
-  .share-btn.visible {
+  .share-btn.visible, .clear-btn.visible {
     display: flex !important;
   }
 
@@ -1085,6 +1085,11 @@ button:focus-visible {
       <div id="mobile-users-list"></div>
     </div>
   </div>
+  <div class="header-right">
+    <button id="clear-btn" class="clear-btn" title="Clear chat" style="display:none">🗑️</button>
+    <button id="share-btn" class="share-btn">
+      <span>🔗</span>
+    </button>
   <div class="header-right">
     <button id="share-btn" class="share-btn">
       <span>🔗</span>
@@ -1283,6 +1288,7 @@ const nameOverlay = document.getElementById('name-overlay');
 const roomOverlay = document.getElementById('room-overlay');
 const shareOverlay = document.getElementById('share-overlay');
 const shareBtn = document.getElementById('share-btn');
+const clearBtn = document.getElementById('clear-btn');
 const shareLink = document.getElementById('share-link');
 const copyBtn = document.getElementById('copy-btn');
 const enterBtn = document.getElementById('enter-btn');
@@ -1459,6 +1465,16 @@ function startChat() {
     const shareUrl = `${location.origin}/#${roomname}`;
     shareLink.value = shareUrl;
   }
+
+  // Show clear button when in chat
+  clearBtn.style.display = 'flex';
+  clearBtn.classList.add('visible');
+
+  // Clear chat handler
+  clearBtn.addEventListener('click', () => {
+    chatMessages.innerHTML = '';
+    addMsg(null, currentLang === 'zh' ? '聊天记录已清空' : 'Chat cleared', 'system');
+  });
 
   chatInput.addEventListener('keydown', e => {
     if (e.key === 'ArrowUp') {
