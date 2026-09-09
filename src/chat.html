@@ -797,17 +797,21 @@ body {
   }
 
   .header-left {
-    gap: 8px;
+    gap: 6px;
+    flex: 1;
+    min-width: 0;
   }
 
   .logo {
-    font-size: 15px;
+    font-size: 14px;
+    flex-shrink: 0;
   }
 
   .logo-icon {
-    width: 26px;
-    height: 26px;
-    font-size: 14px;
+    width: 24px;
+    height: 24px;
+    font-size: 12px;
+    flex-shrink: 0;
   }
 
   .room-badge {
@@ -815,12 +819,25 @@ body {
   }
 
   .share-btn {
-    padding: 5px 8px;
-    font-size: 12px;
+    padding: 4px 6px;
+    font-size: 11px;
+    flex-shrink: 0;
   }
 
   .share-btn span:first-child {
-    font-size: 12px;
+    font-size: 11px;
+  }
+
+  .mobile-online {
+    padding: 3px 8px;
+    font-size: 11px;
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+
+  .mobile-online .online-dot {
+    width: 5px;
+    height: 5px;
   }
 
   .theme-switcher {
@@ -922,6 +939,15 @@ body {
     font-size: 11px;
   }
 
+  .emoji-picker {
+    left: 0;
+    right: 50px;
+  }
+
+  .emoji-grid {
+    grid-template-columns: repeat(6, 1fr);
+  }
+
   .overlay {
     padding: 0;
     align-items: flex-end;
@@ -944,10 +970,6 @@ body {
     max-width: 100%;
     border-radius: 20px 20px 0 0;
     padding-bottom: max(20px, env(safe-area-inset-bottom));
-  }
-
-  .mobile-online {
-    display: flex !important;
   }
 }
 
