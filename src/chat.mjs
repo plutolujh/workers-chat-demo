@@ -279,6 +279,17 @@ export class ChatRoom {
           return new Response(null, { status: 101, webSocket: pair[0] });
         }
 
+        case "/delete": {
+          // DELETE request - delete all chat history
+          if (request.method !== "DELETE") {
+            return new Response("Method not allowed", {status: 405});
+          }
+          await this.storage.deleteAll();
+          return new Response(JSON.stringify({success: true}), {
+            headers: {"Content-Type": "application/json"}
+          });
+        }
+
         default:
           return new Response("Not found", {status: 404});
       }

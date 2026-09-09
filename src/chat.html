@@ -749,7 +749,7 @@ body {
 }
 
 /* ===== SHARE BUTTON IN HEADER ===== */
-.share-btn, .clear-btn {
+.share-btn, .clear-btn, .delete-btn {
   background: var(--surface-hover);
   border: 1px solid var(--border);
   border-radius: 8px;
@@ -769,8 +769,14 @@ body {
   border-color: var(--accent);
 }
 
-.share-btn.visible, .clear-btn.visible {
+.share-btn.visible, .clear-btn.visible, .delete-btn.visible {
   display: flex;
+}
+
+.delete-btn:hover {
+  background: var(--error);
+  border-color: var(--error);
+  color: white;
 }
 
 /* ===== MOBILE ONLINE COUNT ===== */
@@ -888,12 +894,12 @@ body {
     display: none !important;
   }
 
-  .share-btn, .clear-btn {
+  .share-btn, .clear-btn, .delete-btn {
     padding: 6px 8px;
     display: none;
   }
 
-  .share-btn.visible, .clear-btn.visible {
+  .share-btn.visible, .clear-btn.visible, .delete-btn.visible {
     display: flex !important;
   }
 
@@ -1083,6 +1089,7 @@ button:focus-visible {
   </div>
   <div class="header-right">
     <button id="clear-btn" class="clear-btn" title="Clear chat" style="display:none">🗑️</button>
+    <button id="delete-btn" class="delete-btn" title="Delete history" style="display:none">🧹</button>
     <button id="share-btn" class="share-btn">🔗</button>
     <div class="theme-switcher">
       <button class="theme-btn active" data-theme="dark" title="Dark">🌙</button>
@@ -1279,6 +1286,7 @@ const roomOverlay = document.getElementById('room-overlay');
 const shareOverlay = document.getElementById('share-overlay');
 const shareBtn = document.getElementById('share-btn');
 const clearBtn = document.getElementById('clear-btn');
+const deleteBtn = document.getElementById('delete-btn');
 const shareLink = document.getElementById('share-link');
 const copyBtn = document.getElementById('copy-btn');
 const enterBtn = document.getElementById('enter-btn');
@@ -1456,14 +1464,33 @@ function startChat() {
     shareLink.value = shareUrl;
   }
 
-  // Show clear button when in chat
+  // Show clear and delete buttons when in chat
   clearBtn.style.display = 'flex';
   clearBtn.classList.add('visible');
+  deleteBtn.style.display = 'flex';
+  deleteBtn.classList.add('visible');
 
-  // Clear chat handler
+  // Clear chat handler (local only)
   clearBtn.addEventListener('click', () => {
     chatMessages.innerHTML = '';
     addMsg(null, currentLang === 'zh' ? '聊天记录已清空' : 'Chat cleared', 'system');
+  });
+
+  // Delete history handler (server-side)
+  deleteBtn.addEventListener('click', async () => {
+    if (!confirm(currentLang === 'zh' ? '确定要删除所有聊天记录吗？' : 'Delete all chat history?')) return;
+    try {
+      const roomId = location.hash.slice(1);
+      const response = await fetch(`/api/room/${roomId}/delete`, { method: 'DELETE' });
+      if (response.ok) {
+        chatMessages.innerHTML = '';
+        addMsg(null, currentLang === 'zh' ? '历史记录已删除' : 'History deleted', 'system');
+      } else {
+        addMsg(null, currentLang === 'zh' ? '删除失败' : 'Delete failed', 'error');
+      }
+    } catch (err) {
+      addMsg(null, currentLang === 'zh' ? '删除失败' : 'Delete failed', 'error');
+    }
   });
 
   chatInput.addEventListener('keydown', e => {
