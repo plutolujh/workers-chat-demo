@@ -618,6 +618,49 @@ body {
   border-color: var(--accent);
 }
 
+/* ===== RULES BOX ===== */
+.rules-box {
+  background: var(--surface-hover);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 20px;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.rules-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-bottom: 12px;
+  text-align: center;
+}
+
+.rules-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.rules-list li {
+  font-size: 13px;
+  color: var(--text);
+  padding: 6px 8px;
+  background: var(--surface);
+  border-radius: 6px;
+  border-left: 3px solid var(--error);
+}
+
+.rules-note {
+  font-size: 12px;
+  color: var(--error);
+  text-align: center;
+  margin-top: 12px;
+  font-weight: 500;
+}
+
 /* ===== MOBILE ===== */
 @media (max-width: 680px) {
   .roster-panel {
@@ -708,10 +751,21 @@ button:focus-visible {
 
 <!-- NAME OVERLAY -->
 <div id="name-overlay" class="overlay">
-  <div class="modal">
+  <div class="modal" style="max-width: 440px;">
     <div class="modal-icon">💬</div>
     <h1 class="modal-title" data-i18n="name_title">Join the Chat</h1>
-    <p class="modal-sub" data-i18n="name_sub">Enter your name to start chatting in real-time</p>
+    <div class="rules-box">
+      <div class="rules-title" data-i18n="rules_title">聊天室规则 / Chat Rules</div>
+      <ul class="rules-list">
+        <li data-i18n="rule1">🚫 禁止人身攻击、侮辱、歧视他人</li>
+        <li data-i18n="rule2">🚫 禁止发布色情、暴力、血腥内容</li>
+        <li data-i18n="rule3">🚫 禁止散布虚假信息、诈骗内容</li>
+        <li data-i18n="rule4">🚫 禁止垃圾广告、刷屏、恶意刷屏</li>
+        <li data-i18n="rule5">🚫 禁止讨论政治敏感话题</li>
+        <li data-i18n="rule6">🚫 禁止泄露个人隐私信息</li>
+      </ul>
+      <div class="rules-note" data-i18n="rules_note">违反规则将被禁言或封禁IP</div>
+    </div>
     <form id="name-form">
       <input type="text" id="name-input" class="modal-input" placeholder="Your name" maxlength="32" autocomplete="off" required>
       <button type="submit" class="modal-btn" data-i18n="continue">Continue</button>
@@ -755,6 +809,14 @@ const i18n = {
     welcome: 'Welcome to #',
     say_hi: '. Say hi!',
     error_prefix: 'Error: ',
+    rules_title: 'Chat Room Rules / 聊天室规则',
+    rule1: '🚫 No personal attacks, insults, or discrimination',
+    rule2: '🚫 No pornographic, violent, or bloody content',
+    rule3: '🚫 No spreading false information or scams',
+    rule4: '🚫 No spam, flooding, or excessive messaging',
+    rule5: '🚫 No politically sensitive discussions',
+    rule6: '🚫 No sharing personal private information',
+    rules_note: 'Violations may result in mute or IP ban',
   },
   zh: {
     name_title: '加入聊天',
@@ -774,6 +836,14 @@ const i18n = {
     welcome: '欢迎来到 #',
     say_hi: '。打个招呼吧！',
     error_prefix: '错误：',
+    rules_title: '聊天室规则 / Chat Rules',
+    rule1: '🚫 禁止人身攻击、侮辱、歧视他人',
+    rule2: '🚫 禁止发布色情、暴力、血腥内容',
+    rule3: '🚫 禁止散布虚假信息、诈骗内容',
+    rule4: '🚫 禁止垃圾广告、刷屏、恶意刷屏',
+    rule5: '🚫 禁止讨论政治敏感话题',
+    rule6: '🚫 禁止泄露个人隐私信息',
+    rules_note: '违反规则将被禁言或封禁IP',
   }
 };
 
