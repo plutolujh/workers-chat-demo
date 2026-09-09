@@ -1613,8 +1613,8 @@ function addMsg(name, text, type = '') {
     let avatarContent = '';
 
     if (emojiMatch) {
-      // Format: 🐀 [lucky] - icon + short name in brackets
-      displayName = `${emojiMatch[1]} [${emojiMatch[2].trim()}]`;
+      // Format: 🐀 lucky - icon + short name
+      displayName = `${emojiMatch[1]} ${emojiMatch[2].trim()}`;
       avatarContent = esc(emojiMatch[1]);
     } else {
       const initial = name ? name.charAt(0).toUpperCase() : '?';
@@ -1666,7 +1666,7 @@ function clearRoster() {
 function formatDisplayName(name) {
   const emojiMatch = name ? name.match(/^([\u{1F300}-\u{1F9FF}])(.+)/u) : null;
   if (emojiMatch) {
-    return `${emojiMatch[1]} [${emojiMatch[2].trim()}]`;
+    return `${emojiMatch[1]} ${emojiMatch[2].trim()}`;
   }
   return name;
 }
