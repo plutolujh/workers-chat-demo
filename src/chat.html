@@ -661,6 +661,52 @@ body {
   font-weight: 500;
 }
 
+/* ===== SHARE LINK BOX ===== */
+.share-link-box {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.share-link-box .modal-input {
+  flex: 1;
+  margin-bottom: 0;
+  font-size: 12px;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.share-note {
+  font-size: 12px;
+  color: var(--text-muted);
+  text-align: center;
+  margin-bottom: 16px;
+}
+
+/* ===== SHARE BUTTON IN HEADER ===== */
+.share-btn {
+  background: var(--surface-hover);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 13px;
+  font-family: inherit;
+  color: var(--text);
+  cursor: pointer;
+  display: none;
+  align-items: center;
+  gap: 6px;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.share-btn:hover {
+  background: var(--surface-active);
+  border-color: var(--accent);
+}
+
+.share-btn.visible {
+  display: flex;
+}
+
 /* ===== MOBILE ===== */
 @media (max-width: 680px) {
   .roster-panel {
@@ -713,6 +759,10 @@ button:focus-visible {
       <span>EdgeChat</span>
     </div>
     <span id="room-badge" class="room-badge" style="display:none"></span>
+    <button id="share-btn" class="share-btn">
+      <span>🔗</span>
+      <span data-i18n="share">分享</span>
+    </button>
   </div>
   <div class="header-right">
     <div class="theme-switcher">
@@ -788,6 +838,21 @@ button:focus-visible {
   </div>
 </div>
 
+<!-- SHARE OVERLAY (for private rooms) -->
+<div id="share-overlay" class="overlay hidden">
+  <div class="modal">
+    <div class="modal-icon">🔗</div>
+    <h1 class="modal-title" data-i18n="share_title">Share Private Room</h1>
+    <p class="modal-sub" data-i18n="share_sub">Copy this link and send it to friends</p>
+    <div class="share-link-box">
+      <input type="text" id="share-link" class="modal-input" readonly>
+      <button id="copy-btn" class="modal-btn" data-i18n="copy_link">Copy Link</button>
+    </div>
+    <p class="share-note" data-i18n="share_note">Only people with this link can join</p>
+    <button id="enter-btn" class="modal-btn-outline" data-i18n="enter_room">Enter Room</button>
+  </div>
+</div>
+
 <script>
 // ===== I18N =====
 const i18n = {
@@ -817,6 +882,13 @@ const i18n = {
     rule5: '🚫 No politically sensitive discussions',
     rule6: '🚫 No sharing personal private information',
     rules_note: 'Violations may result in mute or IP ban',
+    share: 'Share',
+    share_title: 'Share Private Room',
+    share_sub: 'Copy this link and send it to friends',
+    copy_link: 'Copy',
+    share_note: 'Only people with this link can join',
+    enter_room: 'Enter Room',
+    link_copied: 'Link copied!',
   },
   zh: {
     name_title: '加入聊天',
@@ -844,6 +916,13 @@ const i18n = {
     rule5: '🚫 禁止讨论政治敏感话题',
     rule6: '🚫 禁止泄露个人隐私信息',
     rules_note: '违反规则将被禁言或封禁IP',
+    share: '分享',
+    share_title: '分享私密房间',
+    share_sub: '复制链接发送给朋友',
+    copy_link: '复制',
+    share_note: '只有获得链接的人才能加入',
+    enter_room: '进入房间',
+    link_copied: '链接已复制！',
   }
 };
 
@@ -869,6 +948,11 @@ const rosterCount = document.getElementById('roster-count');
 const roomBadge = document.getElementById('room-badge');
 const nameOverlay = document.getElementById('name-overlay');
 const roomOverlay = document.getElementById('room-overlay');
+const shareOverlay = document.getElementById('share-overlay');
+const shareBtn = document.getElementById('share-btn');
+const shareLink = document.getElementById('share-link');
+const copyBtn = document.getElementById('copy-btn');
+const enterBtn = document.getElementById('enter-btn');
 const langSelect = document.getElementById('lang-select');
 
 // ===== THEME =====
@@ -943,12 +1027,38 @@ document.getElementById('private-btn').addEventListener('click', async () => {
     const res = await fetch(`https://${hostname}/api/room`, { method: 'POST' });
     if (!res.ok) throw new Error();
     roomname = await res.text();
+    // Show share overlay for private room
+    const shareUrl = `${location.origin}/#${roomname}`;
+    shareLink.value = shareUrl;
     roomOverlay.classList.add('hidden');
-    startChat();
+    shareOverlay.classList.remove('hidden');
+    // Show share button in header
+    shareBtn.classList.add('visible');
   } catch {
     alert('Failed to create room');
     btn.disabled = false;
   }
+});
+
+// Share overlay handlers
+copyBtn.addEventListener('click', () => {
+  shareLink.select();
+  navigator.clipboard.writeText(shareLink.value);
+  copyBtn.textContent = t('link_copied');
+  setTimeout(() => {
+    copyBtn.textContent = t('copy_link');
+  }, 2000);
+});
+
+enterBtn.addEventListener('click', () => {
+  shareOverlay.classList.add('hidden');
+  startChat();
+});
+
+shareBtn.addEventListener('click', () => {
+  const shareUrl = `${location.origin}/#${roomname}`;
+  shareLink.value = shareUrl;
+  shareOverlay.classList.remove('hidden');
 });
 
 // ===== SEND MESSAGE =====
@@ -980,6 +1090,13 @@ function startChat() {
   location.hash = '#' + roomname;
   roomBadge.textContent = '#' + roomname;
   roomBadge.style.display = 'inline';
+
+  // Show share button for private rooms (64 hex chars)
+  if (roomname.length === 64) {
+    shareBtn.classList.add('visible');
+    const shareUrl = `${location.origin}/#${roomname}`;
+    shareLink.value = shareUrl;
+  }
 
   chatInput.addEventListener('keydown', e => {
     if (e.key === 'ArrowUp') {
