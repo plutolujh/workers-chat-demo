@@ -1,0 +1,29 @@
+- generic [ref=e1]:
+  - banner [ref=e2]:
+    - generic [ref=e3]: ⬡
+    - generic [ref=e7]: "1"
+    - generic [ref=e11]:
+      - button "🗑️" [ref=e64] [cursor=pointer]
+      - button "🧹" [ref=e65] [cursor=pointer]
+      - generic [ref=e12]:
+        - button "🌙" [ref=e13] [cursor=pointer]
+        - button "☀️" [ref=e14] [cursor=pointer]
+        - button "🌌" [ref=e15] [cursor=pointer]
+        - button "🌅" [ref=e16] [cursor=pointer]
+      - combobox [ref=e17] [cursor=pointer]:
+        - option "EN" [selected]
+        - option "中文"
+      - generic [ref=e18]: v:2665b69
+  - main [ref=e19]:
+    - generic [ref=e20]:
+      - generic [ref=e21]:
+        - generic [ref=e66]: Demo app built with Cloudflare Workers Durable Objects.
+        - generic [ref=e68]: "WARNING: Chat participants are random people. Names are not authenticated."
+        - generic [ref=e70]: "Welcome to #testroom. Say hi!"
+      - generic [ref=e23]:
+        - generic [ref=e24]: ›
+        - textbox "Type a message..." [active] [ref=e25]: Tester2
+        - button "🖼️" [ref=e26] [cursor=pointer]
+        - button "😊" [ref=e27] [cursor=pointer]
+        - button "↩️" [ref=e78]
+        - button "➤" [ref=e28] [cursor=pointer]

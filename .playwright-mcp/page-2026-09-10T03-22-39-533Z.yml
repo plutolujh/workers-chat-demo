@@ -1,0 +1,79 @@
+- generic [ref=e1]:
+  - banner [ref=e2]:
+    - generic [ref=e3]:
+      - generic [ref=e4]:
+        - generic [ref=e5]: ⬡
+        - generic [ref=e6]: EdgeChat
+      - generic [ref=e63]: "#testroom"
+    - generic [ref=e7]:
+      - generic [ref=e8] [cursor=pointer]: "1"
+      - generic [ref=e61]:
+        - generic [ref=e62]: Online
+        - generic [ref=e75]: TestUser
+    - generic [ref=e11]:
+      - button "🗑️" [ref=e64] [cursor=pointer]
+      - button "🧹" [ref=e65] [cursor=pointer]
+      - generic [ref=e12]:
+        - button "🌙" [ref=e13] [cursor=pointer]
+        - button "☀️" [ref=e14] [cursor=pointer]
+        - button "🌌" [ref=e15] [cursor=pointer]
+        - button "🌅" [ref=e16] [cursor=pointer]
+      - combobox [ref=e17] [cursor=pointer]:
+        - option "EN" [selected]
+        - option "中文"
+      - generic [ref=e18]: v:2665b69
+  - main [ref=e19]:
+    - generic [ref=e20]:
+      - generic [ref=e21]:
+        - generic [ref=e66]: Demo app built with Cloudflare Workers Durable Objects.
+        - generic [ref=e68]: "WARNING: Chat participants are random people. Names are not authenticated."
+        - generic [ref=e70]: "Welcome to #testroom. Say hi!"
+      - generic [ref=e23]:
+        - generic [ref=e24]: ›
+        - textbox "Type a message..." [ref=e25]: TestUser
+        - button "🖼️" [ref=e26] [cursor=pointer]
+        - button "😊" [ref=e27] [cursor=pointer]
+        - button "➤" [ref=e28] [cursor=pointer]
+    - complementary [ref=e29]:
+      - generic [ref=e30]:
+        - generic [ref=e31]: Online
+        - generic [ref=e32]: "1"
+      - generic [ref=e72]: TestUser
+  - generic:
+    - generic:
+      - generic: 💬
+      - heading "Join the Chat" [level=1]
+      - generic:
+        - generic: Chat Room Rules / 聊天室规则
+        - list:
+          - listitem: 🚫 No personal attacks, insults, or discrimination
+          - listitem: 🚫 No pornographic, violent, or bloody content
+          - listitem: 🚫 No spreading false information or scams
+          - listitem: 🚫 No spam, flooding, or excessive messaging
+          - listitem: 🚫 No politically sensitive discussions
+          - listitem: 🚫 No sharing personal private information
+        - generic: Violations may result in mute or IP ban
+      - generic:
+        - textbox "Your name" [active]: TestUser
+        - button "🎲 Random Name"
+        - button "Continue"
+  - generic:
+    - generic:
+      - generic: 🚪
+      - heading "Choose a Room" [level=1]
+      - paragraph: Join a public room or create a private one
+      - generic:
+        - textbox "room-name"
+        - button "Join Room"
+      - generic: OR
+      - button "Create Private Room"
+  - generic:
+    - generic:
+      - generic: 🔗
+      - heading "Share Private Room" [level=1]
+      - paragraph: Copy this link and send it to friends
+      - generic:
+        - textbox
+        - button "Copy"
+      - paragraph: Only people with this link can join
+      - button "Enter Room"
