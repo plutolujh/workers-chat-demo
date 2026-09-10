@@ -18,3 +18,10 @@ fallthrough = false
 [[migrations]]
 tag = "v1"                                       # Should be unique for each entry
 new_sqlite_classes = ["ChatRoom", "RateLimiter"]
+
+# Shotsync configuration for image uploads
+[vars]
+SHOTSYNC_URL = "https://shotsync.hao123456.cn"
+
+# These should be set via: wrangler secret put SHOTSYNC_TOKEN
+# SHOTSYNC_TOKEN = ""
