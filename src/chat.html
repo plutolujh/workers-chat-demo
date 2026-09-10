@@ -2381,11 +2381,11 @@ function addMsgOld(name, text, type = '', image = null, timestamp = null) {
   const loadMoreBtn = document.getElementById('load-more-btn');
 
   if (messageOrder === 'asc') {
-    // asc: button at top, find oldest message (last .msg[data-id]), insert before it
+    // asc: button at top, find oldest message (first .msg[data-id]), insert before it
     const msgs = chatMessages.querySelectorAll('.msg[data-id]');
     if (msgs.length > 0) {
-      // Insert before the oldest message (last one in list)
-      chatMessages.insertBefore(div, msgs[msgs.length - 1]);
+      // Insert before the oldest message (first one in list, which is closest to button)
+      chatMessages.insertBefore(div, msgs[0]);
     } else if (loadMoreBtn) {
       // No messages yet, insert after button
       chatMessages.insertBefore(div, loadMoreBtn.nextSibling);
