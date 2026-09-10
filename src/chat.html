@@ -1633,10 +1633,6 @@ function updateI18n() {
   chatInput.placeholder = t('type_placeholder');
 }
 
-// ===== INIT =====
-updateI18n();
-updateLangToggle();
-
 // ===== LANGUAGE TOGGLE =====
 const langToggle = document.getElementById('lang-toggle');
 const langSwitch = document.getElementById('lang-switch');
@@ -1657,6 +1653,10 @@ if (langToggle) {
     updateLangToggle();
   });
 }
+
+// ===== INIT =====
+updateI18n();
+updateLangToggle();
 
 // ===== IMAGE SUPPORT (shotsync upload via backend proxy) =====
 const imageInput = document.getElementById('image-input');
