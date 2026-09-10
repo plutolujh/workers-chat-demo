@@ -2171,12 +2171,9 @@ function joinWS() {
       const oldScrollHeight = chatMessages.scrollHeight;
       const oldScrollTop = chatMessages.scrollTop;
 
-      // asc: reverse messages to oldest-first before prepending
-      // desc: messages already in correct order (newest-first)
-      if (messageOrder === 'asc') {
-        data.messages.reverse();
-      }
-
+      // Backend returns newest-first: [newest, ..., oldest]
+      // asc: append (no reverse) -> [oldest, ..., newest] near input
+      // desc: prepend (no reverse) -> [newest, ..., oldest] near input
       data.messages.forEach(msgStr => {
         const msg = JSON.parse(msgStr);
         console.log('DEBUG history timestamp:', msg.timestamp, 'Date.now():', Date.now(), 'new Date(timestamp):', new Date(msg.timestamp).toLocaleTimeString());
@@ -2381,29 +2378,18 @@ function addMsgOld(name, text, type = '', image = null, timestamp = null) {
   const loadMoreBtn = document.getElementById('load-more-btn');
 
   if (messageOrder === 'asc') {
-    // asc: button at top, find oldest message (first .msg[data-id]), insert before it
-    const msgs = chatMessages.querySelectorAll('.msg[data-id]');
-    if (msgs.length > 0) {
-      // Insert before the oldest message (first one in list, which is closest to button)
-      chatMessages.insertBefore(div, msgs[0]);
-    } else if (loadMoreBtn) {
-      // No messages yet, insert after button
+    // asc: button at top, insert after button using insertBefore(nextSibling)
+    // If nextSibling is existing message, insert before it = after button
+    if (loadMoreBtn && loadMoreBtn.nextSibling) {
       chatMessages.insertBefore(div, loadMoreBtn.nextSibling);
+    } else if (loadMoreBtn) {
+      chatMessages.insertBefore(div, loadMoreBtn);
     } else {
       chatMessages.appendChild(div);
     }
   } else {
-    // desc: button at bottom, find oldest message, insert new messages after it (closer to button)
-    const msgs = chatMessages.querySelectorAll('.msg[data-id]');
-    if (msgs.length > 0) {
-      // Insert after the oldest message (last one in list, closest to button)
-      const oldestMsg = msgs[msgs.length - 1];
-      if (oldestMsg.nextSibling) {
-        chatMessages.insertBefore(div, oldestMsg.nextSibling);
-      } else {
-        chatMessages.appendChild(div);
-      }
-    } else if (loadMoreBtn) {
+    // desc: button at bottom, insert before button
+    if (loadMoreBtn) {
       chatMessages.insertBefore(div, loadMoreBtn);
     } else {
       chatMessages.appendChild(div);
