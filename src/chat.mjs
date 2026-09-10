@@ -418,14 +418,15 @@ export class ChatRoom {
       }
     }
 
-    // Load the last 30 messages from the chat history stored on disk, and send them to the
+    // Load the last N messages from the chat history stored on disk, and send them to the
     // client. Backend sends newest first, client prepends to get oldest at top.
-    let storage = await this.storage.list({reverse: true, limit: 31});
+    const pageSize = 30; // Configurable: number of messages to load initially
+    let storage = await this.storage.list({reverse: true, limit: pageSize + 1});
     let backlog = [...storage.values()];
-    // If there are more than 30 messages, signal that there's more
-    const hasMore = backlog.length > 30;
+    // If there are more than pageSize messages, signal that there's more
+    const hasMore = backlog.length > pageSize;
     if (hasMore) {
-      backlog = backlog.slice(0, 30);
+      backlog = backlog.slice(0, pageSize);
     }
     backlog.forEach(value => {
       session.blockedMessages.push(value);
@@ -487,15 +488,21 @@ export class ChatRoom {
       }
 
       // Handle loading older messages (pagination)
+      // Load messages with timestamp < before (older messages)
       if (data.type === 'loadMore' && data.before) {
         const beforeTime = new Date(data.before).getTime();
-        let storage = await this.storage.list({reverse: true, limit: 31});
+        const pageSize = 30; // Configurable: number of messages to load
+
+        // Get all messages, filter to only older than beforeTime, take pageSize
+        let storage = await this.storage.list({reverse: true, limit: 1000});
         let messages = [...storage.values()];
-        // Filter to only messages before the 'before' timestamp
+
+        // Filter to only messages with timestamp < beforeTime (older messages)
         messages = messages.filter(m => {
           const msg = JSON.parse(m);
           return msg.timestamp < beforeTime;
-        }).slice(0, 30);
+        }).slice(0, pageSize);
+
         webSocket.send(JSON.stringify({
           type: 'history',
           messages: messages
