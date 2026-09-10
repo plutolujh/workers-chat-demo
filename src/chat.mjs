@@ -419,10 +419,9 @@ export class ChatRoom {
     }
 
     // Load the last 30 messages from the chat history stored on disk, and send them to the
-    // client.
+    // client. Backend sends newest first, client prepends to get oldest at top.
     let storage = await this.storage.list({reverse: true, limit: 31});
     let backlog = [...storage.values()];
-    backlog.reverse();
     // If there are more than 30 messages, signal that there's more
     const hasMore = backlog.length > 30;
     if (hasMore) {
