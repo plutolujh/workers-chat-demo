@@ -1245,7 +1245,7 @@ body {
   }
 
   .input-area {
-    padding: 8px 12px;
+    padding: 8px 12px max(12px, env(safe-area-inset-bottom));
   }
 
   .input-row {
@@ -2179,6 +2179,7 @@ function joinWS() {
 
       data.messages.forEach(msgStr => {
         const msg = JSON.parse(msgStr);
+        console.log('DEBUG history timestamp:', msg.timestamp, 'Date.now():', Date.now(), 'new Date(timestamp):', new Date(msg.timestamp).toLocaleTimeString());
         addMsgOld(msg.name, msg.message, '', msg.image, msg.timestamp);
       });
 
@@ -2192,6 +2193,7 @@ function joinWS() {
       hasMoreMessages = data.messages.length >= 30;
       updateLoadMoreButton();
     } else if (data.timestamp > lastSeenTimestamp) {
+      console.log('DEBUG msg timestamp:', data.timestamp, 'Date.now():', Date.now(), 'new Date(timestamp):', new Date(data.timestamp).toLocaleTimeString());
       addMsg(data.name, data.message, '', data.image, data.timestamp);
       lastSeenTimestamp = data.timestamp;
     } else if (data.type === 'recall') {
@@ -2526,6 +2528,32 @@ if (closeSidebar) {
 
 // Init
 chatInput.focus();
+
+// iOS 键盘适配：监听 visualViewport 变化，键盘弹出时自动滚动输入框到可见区域
+if (typeof visualViewport !== 'undefined') {
+  visualViewport.addEventListener('resize', () => {
+    if (document.activeElement === chatInput) {
+      setTimeout(() => {
+        chatInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 100);
+    }
+  });
+  
+  visualViewport.addEventListener('scroll', () => {
+    if (document.activeElement === chatInput) {
+      setTimeout(() => {
+        chatInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 100);
+    }
+  });
+}
+
+// 备用方案：监听 window 的 resize 事件
+window.addEventListener('resize', () => {
+  if (document.activeElement === chatInput) {
+    chatInput.scrollIntoView({ block: 'center' });
+  }
+});
 </script>
 </body>
 </html>
