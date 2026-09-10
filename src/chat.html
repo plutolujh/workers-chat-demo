@@ -2336,12 +2336,12 @@ function addMsg(name, text, type = '', image = null, timestamp = null) {
     }
   }
 
-  // asc: prepend new messages (newest at bottom near input, oldest at top)
-  // desc: append new messages (newest at top near input, oldest at bottom)
+  // asc: append new messages (newest at bottom near input)
+  // desc: prepend new messages (newest at top near input)
   if (messageOrder === 'asc') {
-    chatMessages.prepend(div);
-  } else {
     chatMessages.appendChild(div);
+  } else {
+    chatMessages.prepend(div);
   }
   if (isAtBottom) {
     chatMessages.scrollTop = 0;
