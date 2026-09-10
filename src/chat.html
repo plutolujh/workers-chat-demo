@@ -738,6 +738,13 @@ body {
   z-index: 50;
 }
 
+.input-area.bottom .emoji-picker {
+  top: auto;
+  bottom: 100%;
+  margin-top: 0;
+  margin-bottom: 8px;
+}
+
 .emoji-grid {
   display: grid;
   grid-template-columns: repeat(8, 1fr);
@@ -1688,12 +1695,29 @@ orderToggle?.addEventListener('click', () => {
 });
 
 function toggleMessageOrder() {
+  const chatPanel = document.querySelector('.chat-panel');
+  const inputArea = document.querySelector('.input-area');
   const msgs = Array.from(chatMessages.querySelectorAll('.msg[data-id]'));
   const loadMoreBtn = document.getElementById('load-more-btn');
+
+  if (messageOrder === 'desc') {
+    // Input at top, messages below
+    chatPanel.insertBefore(inputArea, chatMessages);
+    inputArea.classList.remove('bottom');
+  } else {
+    // Input at bottom, messages above
+    chatPanel.appendChild(inputArea);
+    inputArea.classList.add('bottom');
+  }
+
   msgs.reverse();
   msgs.forEach(msg => chatMessages.appendChild(msg));
   if (loadMoreBtn) {
-    chatMessages.insertBefore(loadMoreBtn, chatMessages.firstChild);
+    if (messageOrder === 'desc') {
+      chatMessages.insertBefore(loadMoreBtn, chatMessages.firstChild);
+    } else {
+      chatMessages.appendChild(loadMoreBtn);
+    }
   }
 }
 const roomBadge = document.getElementById('room-badge');
