@@ -487,25 +487,41 @@ export class ChatRoom {
         return;
       }
 
-      // Handle loading older messages (pagination)
-      // Load messages with timestamp < before (older messages)
-      if (data.type === 'loadMore' && data.before) {
-        const beforeTime = new Date(data.before).getTime();
+      // Handle loading older messages (cursor-based pagination)
+      // Client sends lastTimestamp (oldest message's timestamp), load older messages
+      if (data.type === 'loadMore' && data.lastTimestamp) {
+        const cursor = data.lastTimestamp;
         const pageSize = 30; // Configurable: number of messages to load
 
-        // Get all messages, filter to only older than beforeTime, take pageSize
-        let storage = await this.storage.list({reverse: true, limit: 1000});
-        let messages = [...storage.values()];
+        // Get all messages from storage, filter to only older than cursor
+        let storage = await this.storage.list({reverse: true, limit: 10000});
+        let allMessages = [...storage.values()];
 
-        // Filter to only messages with timestamp < beforeTime (older messages)
-        messages = messages.filter(m => {
-          const msg = JSON.parse(m);
-          return msg.timestamp < beforeTime;
-        }).slice(0, pageSize);
+        // Parse messages and sort by timestamp descending (newest first)
+        let parsed = allMessages.map(m => JSON.parse(m)).sort((a, b) => b.timestamp - a.timestamp);
+
+        // Find index of cursor message
+        const cursorIndex = parsed.findIndex(m => m.timestamp === cursor);
+        if (cursorIndex === -1) {
+          // Cursor not found, just return empty
+          webSocket.send(JSON.stringify({ type: 'history', messages: [], hasMore: false }));
+          return;
+        }
+
+        // Get older messages (after cursor in sorted order)
+        let olderMessages = parsed.slice(cursorIndex + 1);
+        let hasMore = olderMessages.length > pageSize;
+        if (hasMore) {
+          olderMessages = olderMessages.slice(0, pageSize);
+        }
+
+        // Convert back to strings for client
+        let messages = olderMessages.map(m => JSON.stringify(m));
 
         webSocket.send(JSON.stringify({
           type: 'history',
-          messages: messages
+          messages: messages,
+          hasMore: hasMore
         }));
         return;
       }

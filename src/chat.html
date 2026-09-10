@@ -2436,16 +2436,16 @@ function loadMoreMessages() {
   if (isLoadingMore || !currentWebSocket) return;
   isLoadingMore = true;
 
-  // Get the oldest message timestamp
+  // Get the oldest message timestamp (cursor)
   const msgs = chatMessages.querySelectorAll('.msg[data-id]');
   if (msgs.length === 0) return;
 
   const oldestMsg = msgs[msgs.length - 1];
-  const before = oldestMsg.dataset.id;
+  const lastTimestamp = oldestMsg.dataset.id;
 
   currentWebSocket.send(JSON.stringify({
     type: 'loadMore',
-    before: parseInt(before)
+    lastTimestamp: parseInt(lastTimestamp)
   }));
 
   // Show loading state
