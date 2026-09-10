@@ -1049,21 +1049,23 @@ body {
     justify-content: center;
     position: relative;
     z-index: 700;
+    isolation: isolate;
   }
 
   .mobile-users-dropdown {
     position: fixed;
     top: 50px;
     left: 50%;
-    transform: translateX(-50%);
+    transform: translateX(-50%) !important;
     width: 200px;
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: 12px;
     padding: 12px;
     box-shadow: 0 8px 24px var(--shadow);
-    z-index: 9999;
+    z-index: 9999 !important;
     display: none;
+    isolation: isolate;
   }
 
   .mobile-users-dropdown.show {
