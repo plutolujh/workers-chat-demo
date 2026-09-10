@@ -1037,6 +1037,25 @@ body {
     position: relative;
   }
 
+  .mobile-users-dropdown {
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%);
+    width: 200px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px;
+    box-shadow: 0 8px 24px var(--shadow);
+    z-index: 500;
+    display: none;
+  }
+
+  .mobile-users-dropdown.show {
+    display: block !important;
+  }
+
   .header-right {
     display: flex;
     align-items: center;
@@ -1084,25 +1103,6 @@ body {
   .mobile-online .online-dot {
     width: 7px;
     height: 7px;
-  }
-
-  .mobile-users-dropdown {
-    position: absolute;
-    top: calc(100% + 8px);
-    left: 50%;
-    transform: translateX(-50%);
-    width: 200px;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 12px;
-    box-shadow: 0 8px 24px var(--shadow);
-    z-index: 500;
-    display: none;
-  }
-
-  .mobile-users-dropdown.show {
-    display: block !important;
   }
 
   .theme-switcher {
@@ -1358,10 +1358,10 @@ button:focus-visible {
       <span class="online-dot"></span>
       <span id="mobile-count">0</span>
     </div>
-  </div>
-  <div id="mobile-users-dropdown" class="mobile-users-dropdown">
-    <div class="dropdown-title" data-i18n="online_now">Online</div>
-    <div id="mobile-users-list"></div>
+    <div id="mobile-users-dropdown" class="mobile-users-dropdown">
+      <div class="dropdown-title" data-i18n="online_now">Online</div>
+      <div id="mobile-users-list"></div>
+    </div>
   </div>
   <div class="header-right">
     <button id="clear-btn" class="clear-btn" title="Clear chat" style="display:none">🗑️</button>
