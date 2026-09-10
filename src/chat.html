@@ -1525,18 +1525,36 @@ function compressImage(file, maxWidth = 800, quality = 0.7) {
   });
 }
 
-// Upload image to shotsync
+// Upload image to shotsync and return public share URL
 async function uploadToShotsync(blob, filename) {
   const form = new FormData();
   form.append('full', blob, filename);
 
+  // Upload image
   const response = await fetch(`${shotsyncUrl}/api/upload`, {
     method: 'POST',
     headers: {
-      'Authorization': shotsyncToken
+      'Authorization': `Bearer ${shotsyncToken}`
     },
     body: form
   });
+
+  if (!response.ok) throw new Error('Upload failed');
+  const { id } = await response.json();
+
+  // Create share link for public access
+  const shareResponse = await fetch(`${shotsyncUrl}/api/share/${encodeURIComponent(id)}`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${shotsyncToken}`
+    }
+  });
+
+  if (!shareResponse.ok) throw new Error('Share link creation failed');
+  const { url } = await shareResponse.json();
+
+  return url;
+}
 
   if (!response.ok) throw new Error('Upload failed');
   const { id } = await response.json();
