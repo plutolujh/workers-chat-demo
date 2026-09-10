@@ -2396,12 +2396,11 @@ function addMsgOld(name, text, type = '', image = null, timestamp = null) {
 
   if (messageOrder === 'asc') {
     // asc: button at top, newest at bottom near input
-    // Insert new messages after the newest (last existing message, closest to input)
+    // Insert new older messages before the oldest (after button)
     const msgs = chatMessages.querySelectorAll('.msg[data-id]');
     if (msgs.length > 0) {
-      // Insert after the newest message (last in DOM list for asc)
-      const newestMsg = msgs[msgs.length - 1];
-      chatMessages.insertBefore(div, newestMsg.nextSibling);
+      // Insert before the oldest message (first in list) = after button
+      chatMessages.insertBefore(div, msgs[0]);
     } else if (loadMoreBtn && loadMoreBtn.nextSibling) {
       chatMessages.insertBefore(div, loadMoreBtn.nextSibling);
     } else if (loadMoreBtn) {
