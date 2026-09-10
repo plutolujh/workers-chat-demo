@@ -1086,10 +1086,10 @@ body {
   }
 
   .mobile-users-dropdown {
-    position: fixed;
-    top: 50px;
+    position: absolute;
+    top: calc(100% + 8px);
     left: 50%;
-    margin-left: -100px;
+    transform: translateX(-50%);
     width: 200px;
     background: var(--surface);
     border: 1px solid var(--border);
