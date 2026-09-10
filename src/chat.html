@@ -2378,11 +2378,11 @@ function addMsgOld(name, text, type = '', image = null, timestamp = null) {
   const loadMoreBtn = document.getElementById('load-more-btn');
 
   if (messageOrder === 'asc') {
-    // asc: button at top, messages prepend to container
-    // Backend returns [newest, ..., oldest], prepend gives [newest, ..., oldest] in DOM
-    chatMessages.prepend(div);
+    // asc: button at top, use appendChild to add new messages after existing ones
+    // Backend returns [newest, ..., oldest], appendChild gives [oldest, ..., newest]
+    chatMessages.appendChild(div);
   } else {
-    // desc: button at bottom, insert before button (keep for later)
+    // desc: button at bottom, insert before button
     if (loadMoreBtn) {
       chatMessages.insertBefore(div, loadMoreBtn);
     } else {
