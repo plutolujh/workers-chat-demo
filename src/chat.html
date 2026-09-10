@@ -2393,8 +2393,17 @@ function addMsgOld(name, text, type = '', image = null, timestamp = null) {
       chatMessages.appendChild(div);
     }
   } else {
-    // desc: button at bottom, insert new messages before button (newer at top, older near button)
-    if (loadMoreBtn) {
+    // desc: button at bottom, find oldest message, insert new messages after it (closer to button)
+    const msgs = chatMessages.querySelectorAll('.msg[data-id]');
+    if (msgs.length > 0) {
+      // Insert after the oldest message (last one in list, closest to button)
+      const oldestMsg = msgs[msgs.length - 1];
+      if (oldestMsg.nextSibling) {
+        chatMessages.insertBefore(div, oldestMsg.nextSibling);
+      } else {
+        chatMessages.appendChild(div);
+      }
+    } else if (loadMoreBtn) {
       chatMessages.insertBefore(div, loadMoreBtn);
     } else {
       chatMessages.appendChild(div);
