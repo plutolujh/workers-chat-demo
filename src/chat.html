@@ -91,7 +91,7 @@ body {
   font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
   background: var(--bg);
   color: var(--text);
-  min-height: 100vh;
+  min-height: 100dvh; /* iOS 键盘适配 */
   display: flex;
   flex-direction: column;
   transition: background 0.3s ease, color 0.3s ease;
@@ -505,16 +505,16 @@ body {
 
 .msg.system {
   background: var(--surface);
-  padding: 10px 14px;
-  margin: 6px 0;
-  border-radius: 10px;
-  border-left: 3px solid var(--accent);
+  padding: 6px 10px;
+  margin: 3px 0;
+  border-radius: 6px;
+  border-left: 2px solid var(--accent);
 }
 
 .msg.system .msg-text {
   color: var(--text-muted);
-  font-size: 13px;
-  line-height: 1.5;
+  font-size: 11px;
+  line-height: 1.4;
 }
 
 .msg.error {
@@ -2166,10 +2166,29 @@ function joinWS() {
       isLoadingMore = false;
       const loadMoreBtn = document.getElementById('load-more-btn');
       if (loadMoreBtn) loadMoreBtn.remove();
+
+      // Record current scroll state before adding messages
+      const oldScrollHeight = chatMessages.scrollHeight;
+      const oldScrollTop = chatMessages.scrollTop;
+
+      // asc: reverse messages to oldest-first before prepending
+      // desc: messages already in correct order (newest-first)
+      if (messageOrder === 'asc') {
+        data.messages.reverse();
+      }
+
       data.messages.forEach(msgStr => {
         const msg = JSON.parse(msgStr);
         addMsgOld(msg.name, msg.message, '', msg.image, msg.timestamp);
       });
+
+      // When desc order, maintain scroll position after adding messages
+      if (messageOrder === 'desc') {
+        const newScrollHeight = chatMessages.scrollHeight;
+        const addedHeight = newScrollHeight - oldScrollHeight;
+        chatMessages.scrollTop = oldScrollTop + addedHeight;
+      }
+
       hasMoreMessages = data.messages.length >= 30;
       updateLoadMoreButton();
     } else if (data.timestamp > lastSeenTimestamp) {
@@ -2250,7 +2269,7 @@ function addMsg(name, text, type = '', image = null, timestamp = null) {
       avatarContent = esc(initial);
     }
 
-    const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const time = timestamp ? new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
     // Image HTML with lazy loading (blur-up effect like WeChat)
     const imageHtml = image ? `
@@ -2313,7 +2332,7 @@ function addMsg(name, text, type = '', image = null, timestamp = null) {
   }
 }
 
-// Add old messages (for load more) - append to bottom instead of prepend
+// Add old messages (for load more) - insert before load-more button when desc order
 function addMsgOld(name, text, type = '', image = null, timestamp = null) {
   const div = document.createElement('div');
   div.className = 'msg' + (type ? ' ' + type : '');
@@ -2336,7 +2355,7 @@ function addMsgOld(name, text, type = '', image = null, timestamp = null) {
       avatarContent = esc(initial);
     }
 
-    const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const time = timestamp ? new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     const imageHtml = image ? `<img class="msg-image" src="${image}" alt="Image">` : '';
     const isOwn = name === username;
     const recallBtn = isOwn && timestamp ? `<button class="msg-recall-btn" style="display:none;margin-top:4px;font-size:11px;padding:2px 8px;background:#666;color:#fff;border:none;border-radius:4px;cursor:pointer;text-align:center;width:auto;min-width:32px">${currentLang==='zh'?'↩️':'↩️'}</button>` : '';
@@ -2355,7 +2374,16 @@ function addMsgOld(name, text, type = '', image = null, timestamp = null) {
     `;
   }
 
-  chatMessages.appendChild(div);
+  // asc: prepend (older messages at top, newer at bottom, button at top)
+  // desc: insertBefore load-more button (newer at top, older at bottom, button at bottom)
+  const loadMoreBtn = document.getElementById('load-more-btn');
+  if (loadMoreBtn) {
+    chatMessages.insertBefore(div, loadMoreBtn);
+  } else if (messageOrder === 'asc') {
+    chatMessages.prepend(div);
+  } else {
+    chatMessages.appendChild(div);
+  }
 }
 
 // Update load more button visibility
@@ -2367,7 +2395,12 @@ function updateLoadMoreButton() {
     loadMoreBtn.className = 'load-more-btn';
     loadMoreBtn.textContent = currentLang === 'zh' ? '加载更多消息' : 'Load more messages';
     loadMoreBtn.onclick = loadMoreMessages;
-    chatMessages.appendChild(loadMoreBtn);
+    // asc: button at top, prepend; desc: button at bottom, append
+    if (messageOrder === 'asc') {
+      chatMessages.prepend(loadMoreBtn);
+    } else {
+      chatMessages.appendChild(loadMoreBtn);
+    }
   } else if (!hasMoreMessages && loadMoreBtn) {
     loadMoreBtn.remove();
   }
