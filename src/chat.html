@@ -1649,11 +1649,11 @@ let username = '';
 let roomname = '';
 let rosterUsers = [];
 let isAtBottom = true;
-let lastSeenTimestamp = 0;
 let wroteWelcomeMessages = false;
 let currentWebSocket = null;
 let hasMoreMessages = false;
 let isLoadingMore = false;
+let displayedTimestamps = new Set(); // Track displayed message timestamps to avoid duplicates
 let messageOrder = localStorage.getItem('chat-order') || 'asc'; // 'asc' = oldest first, 'desc' = newest first
 
 let hostname = window.location.host || 'edge-chat-demo.plutolu.workers.dev';
@@ -2200,10 +2200,10 @@ function joinWS() {
 
       hasMoreMessages = data.messages.length >= 30;
       updateLoadMoreButton();
-    } else if (data.timestamp > lastSeenTimestamp) {
+    } else if (data.timestamp !== undefined && !displayedTimestamps.has(data.timestamp)) {
       console.log('DEBUG msg timestamp:', data.timestamp, 'Date.now():', Date.now(), 'new Date(timestamp):', new Date(data.timestamp).toLocaleTimeString());
       addMsg(data.name, data.message, '', data.image, data.timestamp);
-      lastSeenTimestamp = data.timestamp;
+      displayedTimestamps.add(data.timestamp);
     } else if (data.type === 'recall') {
       // Remove recalled message from UI
       const el = document.querySelector(`.msg[data-id="${data.messageId}"]`);
