@@ -1567,6 +1567,12 @@ console.log('langSelect element:', langSelect);
 langSelect.addEventListener('click', e => {
   console.log('langSelect clicked');
 });
+langSelect.addEventListener('focus', e => {
+  console.log('langSelect focus');
+});
+langSelect.addEventListener('blur', e => {
+  console.log('langSelect blur');
+});
 langSelect.addEventListener('change', e => {
   console.log('langSelect changed to:', e.target.value);
   currentLang = e.target.value;
