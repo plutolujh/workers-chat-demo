@@ -2172,8 +2172,8 @@ function joinWS() {
       const oldScrollTop = chatMessages.scrollTop;
 
       // Backend returns newest-first: [newest, ..., oldest]
-      // asc: append (no reverse) -> [oldest, ..., newest] near input
-      // desc: prepend (no reverse) -> [newest, ..., oldest] near input
+      // asc: prepend (no reverse) -> [newest, ..., oldest] with newest near input
+      // desc: will implement separately
       data.messages.forEach(msgStr => {
         const msg = JSON.parse(msgStr);
         console.log('DEBUG history timestamp:', msg.timestamp, 'Date.now():', Date.now(), 'new Date(timestamp):', new Date(msg.timestamp).toLocaleTimeString());
@@ -2378,17 +2378,11 @@ function addMsgOld(name, text, type = '', image = null, timestamp = null) {
   const loadMoreBtn = document.getElementById('load-more-btn');
 
   if (messageOrder === 'asc') {
-    // asc: button at top, insert after button using insertBefore(nextSibling)
-    // If nextSibling is existing message, insert before it = after button
-    if (loadMoreBtn && loadMoreBtn.nextSibling) {
-      chatMessages.insertBefore(div, loadMoreBtn.nextSibling);
-    } else if (loadMoreBtn) {
-      chatMessages.insertBefore(div, loadMoreBtn);
-    } else {
-      chatMessages.appendChild(div);
-    }
+    // asc: button at top, messages prepend to container
+    // Backend returns [newest, ..., oldest], prepend gives [newest, ..., oldest] in DOM
+    chatMessages.prepend(div);
   } else {
-    // desc: button at bottom, insert before button
+    // desc: button at bottom, insert before button (keep for later)
     if (loadMoreBtn) {
       chatMessages.insertBefore(div, loadMoreBtn);
     } else {
