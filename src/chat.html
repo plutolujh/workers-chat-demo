@@ -217,6 +217,78 @@ body {
   border-color: var(--accent);
 }
 
+/* ===== LANGUAGE TOGGLE ===== */
+.lang-toggle {
+  display: none;
+  align-items: center;
+  gap: 8px;
+  background: var(--surface-hover);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 4px 10px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.lang-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
+  transition: color 0.2s;
+  z-index: 1;
+}
+
+.lang-label.active {
+  color: var(--bg);
+}
+
+.lang-switch {
+  width: 32px;
+  height: 18px;
+  background: var(--accent);
+  border-radius: 9px;
+  position: relative;
+  transition: background 0.2s;
+}
+
+.lang-switch::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 14px;
+  height: 14px;
+  background: var(--bg);
+  border-radius: 50%;
+  transition: transform 0.2s;
+}
+
+.lang-toggle.zh .lang-switch::after {
+  transform: translateX(14px);
+}
+
+.lang-toggle.zh .lang-en {
+  color: var(--text-muted);
+}
+
+.lang-toggle.zh .lang-zh {
+  color: var(--bg);
+}
+
+.lang-toggle:not(.zh) .lang-en {
+  color: var(--bg);
+}
+
+.lang-toggle:not(.zh) .lang-zh {
+  color: var(--text-muted);
+}
+
+@media (max-width: 680px) {
+  .lang-toggle {
+    display: flex;
+  }
+}
+
 /* ===== MAIN LAYOUT ===== */
 .main {
   display: flex;
@@ -1300,10 +1372,11 @@ button:focus-visible {
       <button class="theme-btn" data-theme="midnight" title="Midnight">🌌</button>
       <button class="theme-btn" data-theme="sunset" title="Sunset">🌅</button>
     </div>
-    <select id="lang-select" class="lang-select">
-      <option value="en">EN</option>
-      <option value="zh">中文</option>
-    </select>
+    <div id="lang-toggle" class="lang-toggle">
+      <span class="lang-label lang-en">EN</span>
+      <div class="lang-switch" id="lang-switch"></div>
+      <span class="lang-label lang-zh">中</span>
+    </div>
     <span id="version-badge" class="version-badge">v:AUTO</span>
   </div>
 </header>
@@ -1564,29 +1637,28 @@ function updateI18n() {
 // ===== INIT =====
 langSelect.value = currentLang;
 updateI18n();
+updateLangToggle();
 
-console.log('langSelect element:', langSelect);
-langSelect.addEventListener('focus', e => {
-  console.log('langSelect focus');
-});
-langSelect.addEventListener('blur', e => {
-  console.log('langSelect blur');
-});
-langSelect.addEventListener('change', e => {
-  console.log('langSelect changed to:', e.target.value);
-  currentLang = e.target.value;
-  localStorage.setItem('chat-lang', currentLang);
-  updateI18n();
-  if (wroteWelcomeMessages) {
-    // Refresh welcome messages would go here
+// ===== LANGUAGE TOGGLE =====
+const langToggle = document.getElementById('lang-toggle');
+const langSwitch = document.getElementById('lang-switch');
+
+function updateLangToggle() {
+  if (currentLang === 'zh') {
+    langToggle.classList.add('zh');
+  } else {
+    langToggle.classList.remove('zh');
   }
-});
-langSelect.addEventListener('input', e => {
-  console.log('langSelect input:', e.target.value);
-  currentLang = e.target.value;
-  localStorage.setItem('chat-lang', currentLang);
-  updateI18n();
-});
+}
+
+if (langToggle) {
+  langToggle.addEventListener('click', () => {
+    currentLang = currentLang === 'zh' ? 'en' : 'zh';
+    localStorage.setItem('chat-lang', currentLang);
+    updateI18n();
+    updateLangToggle();
+  });
+}
 
 // ===== IMAGE SUPPORT (shotsync upload via backend proxy) =====
 const imageInput = document.getElementById('image-input');
