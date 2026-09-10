@@ -121,6 +121,103 @@ async function handleApiRequest(path, request, env) {
   // We've received at API request. Route the request based on the path.
 
   switch (path[0]) {
+    case "upload": {
+      // POST /api/upload - proxy image to shotsync
+      if (request.method !== "POST") {
+        return new Response("Method not allowed", {status: 405});
+      }
+
+      const shotsyncUrl = env.SHOTSYNC_URL || "https://shotsync.hao123456.cn";
+      const shotsyncToken = env.SHOTSYNC_TOKEN;
+
+      if (!shotsyncToken) {
+        return new Response(JSON.stringify({error: "Shotsync not configured"}), {
+          status: 500,
+          headers: {"Content-Type": "application/json"}
+        });
+      }
+
+      try {
+        const form = await request.formData();
+        const roomId = form.get("roomId") || "";
+
+        // Forward to shotsync
+        const uploadResponse = await fetch(`${shotsyncUrl}/api/upload`, {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${shotsyncToken}`,
+            "x-room-id": roomId
+          },
+          body: form
+        });
+
+        if (!uploadResponse.ok) {
+          const err = await uploadResponse.text();
+          return new Response(JSON.stringify({error: err}), {
+            status: uploadResponse.status,
+            headers: {"Content-Type": "application/json"}
+          });
+        }
+
+        const { id } = await uploadResponse.json();
+
+        // Create share link
+        const shareResponse = await fetch(`${shotsyncUrl}/api/share/${encodeURIComponent(id)}?room=${encodeURIComponent(roomId)}`, {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${shotsyncToken}`
+          }
+        });
+
+        if (!shareResponse.ok) {
+          const err = await shareResponse.text();
+          return new Response(JSON.stringify({error: err}), {
+            status: shareResponse.status,
+            headers: {"Content-Type": "application/json"}
+          });
+        }
+
+        const { url } = await shareResponse.json();
+        return new Response(JSON.stringify({url}), {
+          headers: {"Content-Type": "application/json"}
+        });
+      } catch (err) {
+        return new Response(JSON.stringify({error: err.message}), {
+          status: 500,
+          headers: {"Content-Type": "application/json"}
+        });
+      }
+    }
+
+    case "upload-delete": {
+      // DELETE /api/upload-delete?room=<roomId> - delete all images in a room
+      if (request.method !== "DELETE") {
+        return new Response("Method not allowed", {status: 405});
+      }
+
+      const shotsyncUrl = env.SHOTSYNC_URL || "https://shotsync.hao123456.cn";
+      const shotsyncToken = env.SHOTSYNC_TOKEN;
+      const roomId = new URL(request.url).searchParams.get("room");
+
+      if (!roomId) {
+        return new Response(JSON.stringify({error: "room required"}), {
+          status: 400,
+          headers: {"Content-Type": "application/json"}
+        });
+      }
+
+      const response = await fetch(`${shotsyncUrl}/api/room/${encodeURIComponent(roomId)}`, {
+        method: "DELETE",
+        headers: {
+          "Authorization": `Bearer ${shotsyncToken}`
+        }
+      });
+
+      return new Response(JSON.stringify({success: response.ok}), {
+        headers: {"Content-Type": "application/json"}
+      });
+    }
+
     case "room": {
       // Request for `/api/room/...`.
 
@@ -286,103 +383,6 @@ export class ChatRoom {
           }
           await this.storage.deleteAll();
           return new Response(JSON.stringify({success: true}), {
-            headers: {"Content-Type": "application/json"}
-          });
-        }
-
-        case "/upload": {
-          // POST /upload - proxy image to shotsync
-          if (request.method !== "POST") {
-            return new Response("Method not allowed", {status: 405});
-          }
-
-          const shotsyncUrl = this.env.SHOTSYNC_URL || "https://shotsync.hao123456.cn";
-          const shotsyncToken = this.env.SHOTSYNC_TOKEN;
-
-          if (!shotsyncToken) {
-            return new Response(JSON.stringify({error: "Shotsync not configured"}), {
-              status: 500,
-              headers: {"Content-Type": "application/json"}
-            });
-          }
-
-          try {
-            const form = await request.formData();
-            const roomId = form.get("roomId") || "";
-
-            // Forward to shotsync
-            const uploadResponse = await fetch(`${shotsyncUrl}/api/upload`, {
-              method: "POST",
-              headers: {
-                "Authorization": `Bearer ${shotsyncToken}`,
-                "x-room-id": roomId
-              },
-              body: form
-            });
-
-            if (!uploadResponse.ok) {
-              const err = await uploadResponse.text();
-              return new Response(JSON.stringify({error: err}), {
-                status: uploadResponse.status,
-                headers: {"Content-Type": "application/json"}
-              });
-            }
-
-            const { id } = await uploadResponse.json();
-
-            // Create share link
-            const shareResponse = await fetch(`${shotsyncUrl}/api/share/${encodeURIComponent(id)}?room=${encodeURIComponent(roomId)}`, {
-              method: "POST",
-              headers: {
-                "Authorization": `Bearer ${shotsyncToken}`
-              }
-            });
-
-            if (!shareResponse.ok) {
-              const err = await shareResponse.text();
-              return new Response(JSON.stringify({error: err}), {
-                status: shareResponse.status,
-                headers: {"Content-Type": "application/json"}
-              });
-            }
-
-            const { url } = await shareResponse.json();
-            return new Response(JSON.stringify({url}), {
-              headers: {"Content-Type": "application/json"}
-            });
-          } catch (err) {
-            return new Response(JSON.stringify({error: err.message}), {
-              status: 500,
-              headers: {"Content-Type": "application/json"}
-            });
-          }
-        }
-
-        case "/upload-delete": {
-          // DELETE /upload-delete?room=<roomId> - delete all images in a room
-          if (request.method !== "DELETE") {
-            return new Response("Method not allowed", {status: 405});
-          }
-
-          const shotsyncUrl = this.env.SHOTSYNC_URL || "https://shotsync.hao123456.cn";
-          const shotsyncToken = this.env.SHOTSYNC_TOKEN;
-          const roomId = new URL(request.url).searchParams.get("room");
-
-          if (!roomId) {
-            return new Response(JSON.stringify({error: "room required"}), {
-              status: 400,
-              headers: {"Content-Type": "application/json"}
-            });
-          }
-
-          const response = await fetch(`${shotsyncUrl}/api/room/${encodeURIComponent(roomId)}`, {
-            method: "DELETE",
-            headers: {
-              "Authorization": `Bearer ${shotsyncToken}`
-            }
-          });
-
-          return new Response(JSON.stringify({success: response.ok}), {
             headers: {"Content-Type": "application/json"}
           });
         }
