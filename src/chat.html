@@ -1583,7 +1583,6 @@ const i18n = {
     online_now: 'Online',
     type_placeholder: 'Type a message...',
     invalid_room: 'Invalid room name.',
-    demo_app: 'Demo app built with Cloudflare Workers Durable Objects.',
     warning: 'WARNING: Chat participants are random people. Names are not authenticated.',
     private_room: 'This is a private room. Share the URL to invite others.',
     welcome: 'Welcome to #',
@@ -1619,7 +1618,6 @@ const i18n = {
     online_now: '在线',
     type_placeholder: '输入消息...',
     invalid_room: '无效的房间名称。',
-    demo_app: '基于 Cloudflare Workers Durable Objects 构建的演示应用。',
     warning: '警告：聊天参与者是随机网民，名称未认证。',
     private_room: '私密房间，分享链接邀请他人加入。',
     welcome: '欢迎来到 #',
@@ -2153,7 +2151,6 @@ function joinWS() {
     } else if (data.ready) {
       if (!wroteWelcomeMessages) {
         wroteWelcomeMessages = true;
-        addMsg(null, t('demo_app'), 'system');
         addMsg(null, t('warning'), 'system');
         if (roomname.length === 64) {
           addMsg(null, t('private_room'), 'system');
