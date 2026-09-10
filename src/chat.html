@@ -1563,6 +1563,7 @@ function updateI18n() {
 langSelect.value = currentLang;
 updateI18n();
 
+console.log('langSelect element:', langSelect);
 langSelect.addEventListener('change', e => {
   console.log('langSelect changed to:', e.target.value);
   currentLang = e.target.value;
