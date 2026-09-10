@@ -418,14 +418,21 @@ export class ChatRoom {
       }
     }
 
-    // Load the last 100 messages from the chat history stored on disk, and send them to the
+    // Load the last 30 messages from the chat history stored on disk, and send them to the
     // client.
-    let storage = await this.storage.list({reverse: true, limit: 100});
+    let storage = await this.storage.list({reverse: true, limit: 31});
     let backlog = [...storage.values()];
     backlog.reverse();
+    // If there are more than 30 messages, signal that there's more
+    const hasMore = backlog.length > 30;
+    if (hasMore) {
+      backlog = backlog.slice(0, 30);
+    }
     backlog.forEach(value => {
       session.blockedMessages.push(value);
     });
+    // Also send signal about whether there are more messages
+    session.blockedMessages.push(JSON.stringify({hasMore}));
   }
 
   async webSocketMessage(webSocket, msg) {
@@ -477,6 +484,23 @@ export class ChatRoom {
         this.broadcast({joined: session.name});
 
         webSocket.send(JSON.stringify({ready: true}));
+        return;
+      }
+
+      // Handle loading older messages (pagination)
+      if (data.type === 'loadMore' && data.before) {
+        const beforeTime = new Date(data.before).getTime();
+        let storage = await this.storage.list({reverse: true, limit: 31});
+        let messages = [...storage.values()];
+        // Filter to only messages before the 'before' timestamp
+        messages = messages.filter(m => {
+          const msg = JSON.parse(m);
+          return msg.timestamp < beforeTime;
+        }).slice(0, 30);
+        webSocket.send(JSON.stringify({
+          type: 'history',
+          messages: messages
+        }));
         return;
       }
 
