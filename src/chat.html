@@ -2393,8 +2393,12 @@ function addMsgOld(name, text, type = '', image = null, timestamp = null) {
       chatMessages.appendChild(div);
     }
   } else {
-    // desc: button at bottom, prepend new messages to top
-    chatMessages.prepend(div);
+    // desc: button at bottom, insert new messages before button (newer at top, older near button)
+    if (loadMoreBtn) {
+      chatMessages.insertBefore(div, loadMoreBtn);
+    } else {
+      chatMessages.appendChild(div);
+    }
   }
 }
 
