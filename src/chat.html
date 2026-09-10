@@ -895,9 +895,8 @@ body {
 .mobile-users-dropdown {
   position: absolute;
   top: 100%;
-  left: 0;
-  right: 0;
-  margin: 8px auto 0;
+  left: 50%;
+  transform: translateX(-50%);
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 12px;
@@ -1017,9 +1016,8 @@ body {
   .mobile-users-dropdown {
     position: absolute;
     top: 100%;
-    left: 0;
-    right: 0;
-    margin: 8px auto 0;
+    left: 50%;
+    transform: translateX(-50%);
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: 12px;
@@ -1286,10 +1284,10 @@ button:focus-visible {
       <span class="online-dot"></span>
       <span id="mobile-count">0</span>
     </div>
-    <div id="mobile-users-dropdown" class="mobile-users-dropdown">
-      <div class="dropdown-title" data-i18n="online_now">Online</div>
-      <div id="mobile-users-list"></div>
-    </div>
+  </div>
+  <div id="mobile-users-dropdown" class="mobile-users-dropdown">
+    <div class="dropdown-title" data-i18n="online_now">Online</div>
+    <div id="mobile-users-list"></div>
   </div>
   <div class="header-right">
     <button id="clear-btn" class="clear-btn" title="Clear chat" style="display:none">🗑️</button>
@@ -2016,7 +2014,7 @@ function addMsg(name, text, type = '', image = null, timestamp = null) {
 
     const isOwn = name === username;
     // Recall button only shown when selected in recall mode
-    const recallBtn = isOwn && timestamp ? `<button class="msg-recall-btn" style="display:none;margin-top:4px;font-size:11px;padding:2px 6px;background:#666;color:#fff;border:none;border-radius:4px;cursor:pointer;text-align:center;width:100%">${currentLang==='zh'?'↩️':'↩️'}</button>` : '';
+    const recallBtn = isOwn && timestamp ? `<button class="msg-recall-btn" style="display:none;margin-top:4px;font-size:11px;padding:2px 8px;background:#666;color:#fff;border:none;border-radius:4px;cursor:pointer;text-align:center;width:auto;min-width:32px">${currentLang==='zh'?'↩️':'↩️'}</button>` : '';
 
     div.innerHTML = `
       <div class="msg-avatar">${avatarContent}</div>
