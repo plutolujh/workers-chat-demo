@@ -418,11 +418,11 @@ export class ChatRoom {
       }
     }
 
-    // Load the last N messages from the chat history stored on disk, and send them to the
-    // client. Backend sends newest first, client prepends to get oldest at top.
+    // Load the last N messages from the chat history stored on disk, and send to
+    // the client. Backend sends oldest first (after reverse), client prepends.
     const pageSize = 30; // Configurable: number of messages to load initially
     let storage = await this.storage.list({reverse: true, limit: pageSize + 1});
-    let backlog = [...storage.values()];
+    let backlog = [...storage.values()].reverse(); // oldest first
     // If there are more than pageSize messages, signal that there's more
     const hasMore = backlog.length > pageSize;
     if (hasMore) {
