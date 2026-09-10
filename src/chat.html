@@ -1653,6 +1653,7 @@ let wroteWelcomeMessages = false;
 let currentWebSocket = null;
 let hasMoreMessages = false;
 let isLoadingMore = false;
+let isReceivingHistory = false; // Flag for initial history load
 let displayedTimestamps = new Set(); // Track displayed message timestamps to avoid duplicates
 let messageOrder = localStorage.getItem('chat-order') || 'asc'; // 'asc' = oldest first, 'desc' = newest first
 
@@ -2169,7 +2170,9 @@ function joinWS() {
           addMsg(null, t('welcome') + roomname + t('say_hi'), 'system');
         }
       }
+      isReceivingHistory = true; // Start receiving initial history
     } else if (data.hasMore !== undefined) {
+      isReceivingHistory = false; // Finished receiving initial history
       hasMoreMessages = data.hasMore;
       updateLoadMoreButton();
     } else if (data.type === 'history') {
@@ -2202,7 +2205,7 @@ function joinWS() {
       updateLoadMoreButton();
     } else if (data.timestamp !== undefined && !displayedTimestamps.has(data.timestamp)) {
       console.log('DEBUG msg timestamp:', data.timestamp, 'Date.now():', Date.now(), 'new Date(timestamp):', new Date(data.timestamp).toLocaleTimeString());
-      addMsg(data.name, data.message, '', data.image, data.timestamp);
+      addMsg(data.name, data.message, '', data.image, data.timestamp, isReceivingHistory);
       displayedTimestamps.add(data.timestamp);
     } else if (data.type === 'recall') {
       // Remove recalled message from UI
@@ -2254,7 +2257,7 @@ function recallSelectedMsg() {
   toggleRecallMode();
 }
 
-function addMsg(name, text, type = '', image = null, timestamp = null) {
+function addMsg(name, text, type = '', image = null, timestamp = null, isHistory = false) {
   const div = document.createElement('div');
   div.className = 'msg' + (type ? ' ' + type : '');
   if (timestamp) {
@@ -2336,12 +2339,16 @@ function addMsg(name, text, type = '', image = null, timestamp = null) {
     }
   }
 
-  // asc: append new messages (newest at bottom near input)
-  // desc: prepend new messages (newest at top near input)
+  // asc: history messages prepend, new messages append
+  // desc: prepend all messages
   if (messageOrder === 'asc') {
-    chatMessages.appendChild(div);
+    if (isHistory) {
+      chatMessages.prepend(div);  // history: prepend to get oldest at top
+    } else {
+      chatMessages.appendChild(div);  // new message: append to queue tail
+    }
   } else {
-    chatMessages.prepend(div);
+    chatMessages.prepend(div);  // desc mode
   }
   if (isAtBottom) {
     chatMessages.scrollTop = 0;
