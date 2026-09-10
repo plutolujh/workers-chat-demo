@@ -1465,7 +1465,7 @@ button:focus-visible {
       <div class="lang-switch" id="lang-switch"></div>
       <span class="lang-label lang-zh">中</span>
     </div>
-    <span id="version-badge" class="version-badge">v:AUTO</span>
+    <span id="version-badge" class="version-badge">v:7d317d2</span>
   </div>
 </header>
 
@@ -1708,23 +1708,34 @@ function toggleMessageOrder() {
   const chatPanel = document.querySelector('.chat-panel');
   const inputArea = document.querySelector('.input-area');
   const msgs = Array.from(chatMessages.querySelectorAll('.msg[data-id]'));
-  const loadMoreBtn = document.getElementById('load-more-btn');
+  let loadMoreBtn = document.getElementById('load-more-btn');
+
+  // Remove button first to avoid interference
+  if (loadMoreBtn) loadMoreBtn.remove();
 
   if (messageOrder === 'desc') {
-    // Input at top, messages below
+    // DESC: input at top, newest at top
     chatPanel.insertBefore(inputArea, chatMessages);
     inputArea.classList.remove('bottom');
+    // DESC: prepend messages (newest first = already correct order)
+    msgs.forEach(msg => chatMessages.prepend(msg));
   } else {
-    // Input at bottom, messages above
+    // ASC: input at bottom, oldest at top
     chatPanel.appendChild(inputArea);
     inputArea.classList.add('bottom');
+    // ASC: append messages (oldest first = need to reverse)
+    msgs.reverse().forEach(msg => chatMessages.appendChild(msg));
   }
 
-  msgs.reverse();
-  msgs.forEach(msg => chatMessages.appendChild(msg));
-  if (loadMoreBtn) {
-    if (messageOrder === 'desc') {
-      chatMessages.insertBefore(loadMoreBtn, chatMessages.firstChild);
+  // Re-add button based on mode
+  if (hasMoreMessages) {
+    loadMoreBtn = document.createElement('button');
+    loadMoreBtn.id = 'load-more-btn';
+    loadMoreBtn.className = 'load-more-btn';
+    loadMoreBtn.textContent = currentLang === 'zh' ? '加载更多消息' : 'Load more messages';
+    loadMoreBtn.onclick = loadMoreMessages;
+    if (messageOrder === 'asc') {
+      chatMessages.prepend(loadMoreBtn);
     } else {
       chatMessages.appendChild(loadMoreBtn);
     }
@@ -2171,10 +2182,6 @@ function joinWS() {
         }
       }
       isReceivingHistory = true; // Start receiving initial history
-    } else if (data.hasMore !== undefined) {
-      isReceivingHistory = false; // Finished receiving initial history
-      hasMoreMessages = data.hasMore;
-      updateLoadMoreButton();
     } else if (data.type === 'history') {
       // Handle load more response
       isLoadingMore = false;
@@ -2202,7 +2209,15 @@ function joinWS() {
       }
 
       hasMoreMessages = data.messages.length >= 30;
+      isReceivingHistory = false; // Finished receiving initial history
       updateLoadMoreButton();
+    } else if (data.hasMore !== undefined) {
+      // Separate hasMore message (not from load more)
+      if (!isLoadingMore) {
+        isReceivingHistory = false; // Finished receiving initial history
+        hasMoreMessages = data.hasMore;
+        updateLoadMoreButton();
+      }
     } else if (data.timestamp !== undefined && !displayedTimestamps.has(data.timestamp)) {
       console.log('DEBUG msg timestamp:', data.timestamp, 'Date.now():', Date.now(), 'new Date(timestamp):', new Date(data.timestamp).toLocaleTimeString());
       addMsg(data.name, data.message, '', data.image, data.timestamp, isReceivingHistory);
@@ -2455,7 +2470,8 @@ function loadMoreMessages() {
   const msgs = chatMessages.querySelectorAll('.msg[data-id]');
   if (msgs.length === 0) return;
 
-  const oldestMsg = msgs[msgs.length - 1];
+  // ASC: oldest is msgs[0], DESC: oldest is msgs[msgs.length - 1]
+  const oldestMsg = messageOrder === 'asc' ? msgs[0] : msgs[msgs.length - 1];
   const lastTimestamp = oldestMsg.dataset.id;
 
   currentWebSocket.send(JSON.stringify({
