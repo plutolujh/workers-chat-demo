@@ -1,0 +1,5 @@
+[ 6728079ms] [ERROR] WebSocket connection to 'wss://chat.hao123456.cn/api/room/testroom3/websocket' failed: Connection closed before receiving a handshake response @ https://chat.hao123456.cn/:1856
+[ 6728124ms] [ERROR] WebSocket connection to 'wss://chat.hao123456.cn/api/room/testroom3/websocket' failed: Error in connection establishment: net::ERR_NAME_NOT_RESOLVED @ https://chat.hao123456.cn/:1856
+[ 6728192ms] [ERROR] WebSocket connection to 'wss://chat.hao123456.cn/api/room/testroom3/websocket' failed: Error in connection establishment: net::ERR_NAME_NOT_RESOLVED @ https://chat.hao123456.cn/:1856
+[ 6728192ms] [ERROR] WebSocket connection to 'wss://chat.hao123456.cn/api/room/testroom3/websocket' failed: Error in connection establishment: net::ERR_NAME_NOT_RESOLVED @ https://chat.hao123456.cn/:1856
+[ 6728192ms] [ERROR] WebSocket connection to 'wss://chat.hao123456.cn/api/room/testroom3/websocket' failed: Error in connection establishment: net::ERR_NAME_NOT_RESOLVED @ https://chat.hao123456.cn/:1856
