@@ -1324,7 +1324,7 @@ button:focus-visible {
         <input type="file" id="image-input" accept="image/*" style="display:none">
         <button id="image-btn" class="image-btn" type="button">🖼️</button>
         <button id="emoji-btn" class="emoji-btn" type="button">😊</button>
-        <button id="recall-btn" class="recall-btn" type="button" style="display:none">撤</button>
+        <button id="recall-btn" class="recall-btn" type="button" style="display:none">↩️</button>
         <button id="send-btn" class="send-btn">➤</button>
       </div>
       <div id="emoji-picker" class="emoji-picker" style="display:none">
@@ -2016,7 +2016,7 @@ function addMsg(name, text, type = '', image = null, timestamp = null) {
 
     const isOwn = name === username;
     // Recall button only shown when selected in recall mode
-    const recallBtn = isOwn && timestamp ? `<button class="msg-recall-btn" style="display:none;margin-top:4px;font-size:11px;padding:2px 6px;background:#666;color:#fff;border:none;border-radius:4px;cursor:pointer;text-align:center;width:100%">${currentLang==='zh'?'撤回':'Recall'}</button>` : '';
+    const recallBtn = isOwn && timestamp ? `<button class="msg-recall-btn" style="display:none;margin-top:4px;font-size:11px;padding:2px 6px;background:#666;color:#fff;border:none;border-radius:4px;cursor:pointer;text-align:center;width:100%">${currentLang==='zh'?'↩️':'↩️'}</button>` : '';
 
     div.innerHTML = `
       <div class="msg-avatar">${avatarContent}</div>
