@@ -1483,7 +1483,7 @@ langSelect.addEventListener('change', e => {
   }
 });
 
-// ===== IMAGE SUPPORT (with compression) =====
+// ===== IMAGE SUPPORT (shotsync upload) =====
 const imageInput = document.getElementById('image-input');
 const imageBtn = document.getElementById('image-btn');
 const imagePreview = document.getElementById('image-preview');
@@ -1491,6 +1491,8 @@ const previewImg = document.getElementById('preview-img');
 const cancelImgBtn = document.getElementById('cancel-img-btn');
 
 let selectedImageData = null;
+let shotsyncUrl = 'https://shotsync.plutolu.workers.dev';
+let shotsyncToken = 'P1ybmz2g7TzI3HQzpmzJqzeWSA6x+/GiZPmI9t02YG4=';
 
 // Compress image, max 800px width, quality 0.7
 function compressImage(file, maxWidth = 800, quality = 0.7) {
@@ -1514,19 +1516,31 @@ function compressImage(file, maxWidth = 800, quality = 0.7) {
         const ctx = canvas.getContext('2d');
         ctx.drawImage(img, 0, 0, width, height);
 
-        // Try webp first (smaller), fallback to jpeg
-        const webp = canvas.toDataURL('image/webp', quality);
-        if (webp.length > file.size * 0.9) {
-          // If compression didn't help much, use original jpeg
-          resolve(canvas.toDataURL('image/jpeg', quality));
-        } else {
-          resolve(webp);
-        }
+        // Output as JPEG blob
+        canvas.toBlob(resolve, 'image/jpeg', quality);
       };
       img.src = e.target.result;
     };
     reader.readAsDataURL(file);
   });
+}
+
+// Upload image to shotsync
+async function uploadToShotsync(blob, filename) {
+  const form = new FormData();
+  form.append('full', blob, filename);
+
+  const response = await fetch(`${shotsyncUrl}/api/upload`, {
+    method: 'POST',
+    headers: {
+      'Authorization': shotsyncToken
+    },
+    body: form
+  });
+
+  if (!response.ok) throw new Error('Upload failed');
+  const { id } = await response.json();
+  return `${shotsyncUrl}/i/${id}`;
 }
 
 imageBtn.addEventListener('click', () => {
@@ -1540,9 +1554,18 @@ imageInput.addEventListener('change', async e => {
     previewImg.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
     imagePreview.style.display = 'inline-block';
 
-    // Compress and show preview
-    selectedImageData = await compressImage(file);
-    previewImg.src = selectedImageData;
+    try {
+      // Compress and get blob
+      const blob = await compressImage(file);
+      // Upload to shotsync
+      selectedImageData = await uploadToShotsync(blob, file.name);
+      // Show preview with shotsync URL
+      previewImg.src = selectedImageData;
+    } catch (err) {
+      console.error('Upload failed:', err);
+      selectedImageData = null;
+      imagePreview.style.display = 'none';
+    }
   }
   imageInput.value = '';
 });
