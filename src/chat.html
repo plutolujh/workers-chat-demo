@@ -1654,7 +1654,7 @@ let wroteWelcomeMessages = false;
 let currentWebSocket = null;
 let hasMoreMessages = false;
 let isLoadingMore = false;
-let messageOrder = localStorage.getItem('chat-order') || 'desc'; // 'desc' = newest first, 'asc' = oldest first
+let messageOrder = localStorage.getItem('chat-order') || 'asc'; // 'asc' = oldest first, 'desc' = newest first
 
 let hostname = window.location.host || 'edge-chat-demo.plutolu.workers.dev';
 
