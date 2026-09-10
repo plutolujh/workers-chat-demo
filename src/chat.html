@@ -2125,15 +2125,22 @@ function renderRoster() {
 const mobileOnline = document.getElementById('mobile-online');
 const mobileDropdown = document.getElementById('mobile-users-dropdown');
 
+console.log('mobileOnline:', mobileOnline);
+console.log('mobileDropdown:', mobileDropdown);
+
 if (mobileOnline && mobileDropdown) {
   mobileOnline.style.cursor = 'pointer';
   mobileOnline.addEventListener('click', e => {
     e.stopPropagation();
+    console.log('clicked, current classList:', mobileDropdown.classList);
     mobileDropdown.classList.toggle('show');
+    console.log('after toggle, classList:', mobileDropdown.classList);
   });
   document.addEventListener('click', () => {
     mobileDropdown.classList.remove('show');
   });
+} else {
+  console.log('mobileOnline or mobileDropdown is null!');
 }
 
 // Init
