@@ -2334,7 +2334,9 @@ function addMsg(name, text, type = '', image = null, timestamp = null) {
   }
 }
 
-// Add old messages (for load more) - insert before load-more button when desc order
+// Add old messages (for load more)
+// asc: insert new messages between button and existing oldest message
+// desc: insert new messages at top (newest at top, button at bottom)
 function addMsgOld(name, text, type = '', image = null, timestamp = null) {
   const div = document.createElement('div');
   div.className = 'msg' + (type ? ' ' + type : '');
@@ -2376,15 +2378,23 @@ function addMsgOld(name, text, type = '', image = null, timestamp = null) {
     `;
   }
 
-  // asc: prepend (older messages at top, newer at bottom, button at top)
-  // desc: insertBefore load-more button (newer at top, older at bottom, button at bottom)
   const loadMoreBtn = document.getElementById('load-more-btn');
-  if (loadMoreBtn) {
-    chatMessages.insertBefore(div, loadMoreBtn);
-  } else if (messageOrder === 'asc') {
-    chatMessages.prepend(div);
+
+  if (messageOrder === 'asc') {
+    // asc: button at top, find oldest message (last .msg[data-id]), insert before it
+    const msgs = chatMessages.querySelectorAll('.msg[data-id]');
+    if (msgs.length > 0) {
+      // Insert before the oldest message (last one in list)
+      chatMessages.insertBefore(div, msgs[msgs.length - 1]);
+    } else if (loadMoreBtn) {
+      // No messages yet, insert after button
+      chatMessages.insertBefore(div, loadMoreBtn.nextSibling);
+    } else {
+      chatMessages.appendChild(div);
+    }
   } else {
-    chatMessages.appendChild(div);
+    // desc: button at bottom, prepend new messages to top
+    chatMessages.prepend(div);
   }
 }
 
