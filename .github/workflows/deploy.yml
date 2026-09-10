@@ -11,6 +11,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Get commit hash
+        id: commit
+        run: echo "hash=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+
+      - name: Update version in HTML
+        run: sed -i 's/v:[a-f0-9]*/v:${{ steps.commit.outputs.hash }}/' src/chat.html
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
