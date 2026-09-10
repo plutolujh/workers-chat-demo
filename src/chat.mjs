@@ -480,6 +480,31 @@ export class ChatRoom {
         return;
       }
 
+      // Handle message recall
+      if (data.type === 'recall' && data.messageId) {
+        const key = new Date(data.messageId).toISOString();
+        const stored = await this.storage.get(key);
+        if (stored) {
+          const msgData = JSON.parse(stored);
+          if (msgData.name === session.name) {
+            // Delete the message
+            await this.storage.delete(key);
+            // Broadcast recall to all clients
+            this.broadcast(JSON.stringify({
+              type: 'recall',
+              messageId: data.messageId,
+              by: session.name
+            }));
+            webSocket.send(JSON.stringify({recall: true, messageId: data.messageId}));
+          } else {
+            webSocket.send(JSON.stringify({error: "Cannot recall: not your message."}));
+          }
+        } else {
+          webSocket.send(JSON.stringify({error: "Cannot recall: message not found."}));
+        }
+        return;
+      }
+
       // Construct sanitized message for storage and broadcast.
       data = {
         name: session.name,

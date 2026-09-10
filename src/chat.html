@@ -2,6 +2,7 @@
 <html data-theme="dark">
 <head>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23f5a623'/%3E%3Cpath d='M8 22V10l6 6 4-4 4 10H8z' fill='%23fff'/%3E%3Ccircle cx='11' cy='10' r='2' fill='%23fff'/%3E%3C/svg%3E">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -161,6 +162,7 @@ body {
   align-items: center;
   justify-content: center;
   flex: 1;
+  position: relative;
 }
 
 .theme-switcher {
@@ -878,6 +880,7 @@ body {
   padding: 4px 10px;
   font-size: 12px;
   color: var(--text-muted);
+  position: relative;
 }
 
 .mobile-online .online-dot {
@@ -907,7 +910,7 @@ body {
 }
 
 .mobile-users-dropdown.show {
-  display: block;
+  display: block !important;
 }
 
 .mobile-users-dropdown .dropdown-title {
@@ -959,6 +962,7 @@ body {
     flex: 1;
     display: flex !important;
     justify-content: center;
+    position: relative;
   }
 
   .header-right {
@@ -1010,6 +1014,27 @@ body {
     height: 7px;
   }
 
+  .mobile-users-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px;
+    margin-top: 8px;
+    min-width: 180px;
+    max-width: 280px;
+    box-shadow: 0 8px 24px var(--shadow);
+    z-index: 500;
+    display: none;
+  }
+
+  .mobile-users-dropdown.show {
+    display: block !important;
+  }
+
   .theme-switcher {
     display: flex;
     gap: 2px;
@@ -1033,6 +1058,18 @@ body {
 
   .header-right {
     flex-shrink: 0;
+    overflow-x: auto;
+    max-width: 100%;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .header-right::-webkit-scrollbar {
+    display: none;
+  }
+
+  .lang-select {
+    min-width: 50px;
+    max-width: 70px;
   }
 
   .version-badge {
@@ -1057,6 +1094,14 @@ body {
     width: 32px;
     height: 32px;
     font-size: 14px;
+  }
+
+  .recall-btn {
+    display: inline-flex !important;
+    width: 32px;
+    height: 32px;
+    font-size: 14px;
+    background: var(--surface-hover) !important;
   }
 
   .msg {
@@ -1177,6 +1222,24 @@ body {
 button:focus-visible {
   outline-offset: 2px;
 }
+
+/* Recall mode */
+#recall-btn {
+  display: none;
+}
+#recall-btn.active {
+  background: var(--accent) !important;
+}
+.msg.recall-mode {
+  cursor: pointer;
+}
+.msg.recall-mode:hover {
+  background: var(--surface-hover);
+}
+.msg.selected {
+  outline: 2px solid var(--accent);
+  background: var(--accent-glow);
+}
   </style>
 </head>
 <body>
@@ -1191,7 +1254,7 @@ button:focus-visible {
     <span id="room-badge" class="room-badge" style="display:none"></span>
   </div>
   <div class="header-center">
-    <div id="mobile-online" class="mobile-online">
+    <div id="mobile-online" class="mobile-online" onclick="document.getElementById('mobile-users-dropdown').classList.toggle('show')">
       <span class="online-dot"></span>
       <span id="mobile-count">0</span>
     </div>
@@ -1214,7 +1277,7 @@ button:focus-visible {
       <option value="en">EN</option>
       <option value="zh">中文</option>
     </select>
-    <span id="version-badge" class="version-badge">v:AUTO</span>
+    <span id="version-badge" class="version-badge">v:2665b69</span>
   </div>
 </header>
 
@@ -1233,6 +1296,7 @@ button:focus-visible {
         <input type="file" id="image-input" accept="image/*" style="display:none">
         <button id="image-btn" class="image-btn" type="button">🖼️</button>
         <button id="emoji-btn" class="emoji-btn" type="button">😊</button>
+        <button id="recall-btn" class="recall-btn" type="button" style="display:none">↩️</button>
         <button id="send-btn" class="send-btn">➤</button>
       </div>
       <div id="emoji-picker" class="emoji-picker" style="display:none">
@@ -1690,6 +1754,21 @@ function sendMessage() {
 }
 
 sendBtn.addEventListener('click', sendMessage);
+
+const recallBtn = document.getElementById('recall-btn');
+recallBtn.addEventListener('click', () => {
+  if (recallMode) {
+    // Confirm recall action
+    if (selectedMsgId) {
+      recallSelectedMsg();
+    } else {
+      toggleRecallMode(); // Exit recall mode if nothing selected
+    }
+  } else {
+    toggleRecallMode();
+  }
+});
+
 chatInput.addEventListener('keydown', e => {
   if (e.key === 'Enter' && !e.shiftKey) {
     e.preventDefault();
@@ -1819,8 +1898,16 @@ function joinWS() {
         }
       }
     } else if (data.timestamp > lastSeenTimestamp) {
-      addMsg(data.name, data.message, '', data.image);
+      addMsg(data.name, data.message, '', data.image, data.timestamp);
       lastSeenTimestamp = data.timestamp;
+    } else if (data.type === 'recall') {
+      // Remove recalled message from UI
+      const el = document.querySelector(`.msg[data-id="${data.messageId}"]`);
+      if (el) el.remove();
+      addMsg(null, data.by + (currentLang === 'zh' ? ' 撤回了一条消息' : ' recalled a message'), 'system');
+    } else if (data.recall) {
+      // Confirm of own recall - just acknowledge
+      console.log('Message recalled:', data.messageId);
     }
   });
 
@@ -1828,9 +1915,48 @@ function joinWS() {
   ws.addEventListener('error', reconnect);
 }
 
-function addMsg(name, text, type = '', image = null) {
+let recallMode = false;
+let selectedMsgId = null;
+
+function toggleRecallMode() {
+  recallMode = !recallMode;
+  selectedMsgId = null;
+  document.querySelectorAll('.msg.selected').forEach(el => el.classList.remove('selected'));
+  document.querySelectorAll('.msg-recall-btn').forEach(btn => {
+    btn.style.display = 'none';
+  });
+  recallBtn.classList.toggle('active', recallMode);
+}
+
+function selectMsg(el, msgId) {
+  if (!recallMode) return;
+  // Hide all recall buttons first
+  document.querySelectorAll('.msg-recall-btn').forEach(btn => btn.style.display = 'none');
+  // Deselect all
+  document.querySelectorAll('.msg.selected').forEach(e => e.classList.remove('selected'));
+  // Select this message and show its recall button
+  el.classList.add('selected');
+  selectedMsgId = msgId;
+  const recallBtn = el.querySelector('.msg-recall-btn');
+  if (recallBtn) recallBtn.style.display = 'block';
+}
+
+function recallSelectedMsg() {
+  if (!selectedMsgId || !currentWebSocket) return;
+  currentWebSocket.send(JSON.stringify({
+    type: 'recall',
+    messageId: selectedMsgId
+  }));
+  toggleRecallMode();
+}
+
+function addMsg(name, text, type = '', image = null, timestamp = null) {
   const div = document.createElement('div');
   div.className = 'msg' + (type ? ' ' + type : '');
+  if (timestamp) {
+    div.dataset.id = timestamp;
+    div.onclick = () => selectMsg(div, timestamp);
+  }
 
   if (type === 'system' || type === 'error') {
     div.innerHTML = `<div class="msg-text">${esc(text)}</div>`;
@@ -1860,6 +1986,10 @@ function addMsg(name, text, type = '', image = null) {
            onerror="this.classList.remove('loading'); this.classList.add('loaded')">
     ` : '';
 
+    const isOwn = name === username;
+    // Recall button only shown when selected in recall mode
+    const recallBtn = isOwn && timestamp ? `<button class="msg-recall-btn" style="display:none;margin-top:4px;font-size:11px;padding:2px 6px;background:#666;color:#fff;border:none;border-radius:4px;cursor:pointer">${currentLang==='zh'?'撤回':'Recall'}</button>` : '';
+
     div.innerHTML = `
       <div class="msg-avatar">${avatarContent}</div>
       <div class="msg-body">
@@ -1869,8 +1999,23 @@ function addMsg(name, text, type = '', image = null) {
         </div>
         <div class="msg-text">${esc(text)}</div>
         ${imageHtml}
+        ${recallBtn}
       </div>
     `;
+
+    // Add click handler for recall button inside message
+    if (isOwn && timestamp) {
+      const btn = div.querySelector('.msg-recall-btn');
+      if (btn) {
+        btn.onclick = (e) => {
+          e.stopPropagation();
+          if (recallMode) {
+            selectedMsgId = timestamp;
+            recallSelectedMsg();
+          }
+        };
+      }
+    }
 
     // Lazy load images using Intersection Observer
     if (image) {

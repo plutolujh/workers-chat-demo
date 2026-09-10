@@ -25,3 +25,7 @@ SHOTSYNC_URL = "https://shotsync.hao123456.cn"
 
 # These should be set via: wrangler secret put SHOTSYNC_TOKEN
 # SHOTSYNC_TOKEN = ""
+
+# Build script to inject git commit hash as version
+[build]
+command = "sed -i.bak 's/v:AUTO/v:'\"$(git rev-parse --short HEAD)\"'/g' src/chat.html && rm -f src/chat.html.bak"
