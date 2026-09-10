@@ -9,11 +9,6 @@ Cloudflare Workers 实时聊天应用。
 
 Actions workflow: `.github/workflows/deploy.yml`
 
-### 手动部署
-```bash
-npx wrangler deploy
-```
-
 ## 环境变量
 - `SHOTSYNC_URL`: 图片上传服务 URL
 - `SHOTSYNC_TOKEN`: 图片上传 token（通过 `wrangler secret put` 设置）
