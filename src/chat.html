@@ -2220,7 +2220,7 @@ function joinWS() {
       }
     } else if (data.timestamp !== undefined && !displayedTimestamps.has(data.timestamp)) {
       console.log('DEBUG msg timestamp:', data.timestamp, 'Date.now():', Date.now(), 'new Date(timestamp):', new Date(data.timestamp).toLocaleTimeString());
-      addMsg(data.name, data.message, '', data.image, data.timestamp, isReceivingHistory);
+      addMsg(data.name, data.message, '', data.image, data.timestamp, false); // new message always appends
       displayedTimestamps.add(data.timestamp);
     } else if (data.type === 'recall') {
       // Remove recalled message from UI
