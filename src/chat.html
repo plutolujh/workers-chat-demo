@@ -1564,6 +1564,7 @@ langSelect.value = currentLang;
 updateI18n();
 
 langSelect.addEventListener('change', e => {
+  console.log('langSelect changed to:', e.target.value);
   currentLang = e.target.value;
   localStorage.setItem('chat-lang', currentLang);
   updateI18n();
