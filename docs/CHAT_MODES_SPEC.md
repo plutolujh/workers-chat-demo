@@ -40,6 +40,37 @@ Two message display modes: **asc** (queue/fifo) and **desc** (reverse/lifo).
 | New message | append | newest at bottom |
 | Load more | prepend (before oldest) | older above oldest |
 
+### New Message Position (ASC)
+```
+┌─────────────────────────────────┐
+│           Header                 │
+├─────────────────────────────────┤
+│         [更多按钮]               │  ← 队列头
+│         [msg1 - 最老]           │
+│         [msg2]                  │
+│         ...                      │
+│         [msg30 - 最新]          │
+├─────────────────────────────────┤
+│    [新消息] ← append 到这里     │  ← 输入框上方
+│  [输入框]              [发送]    │
+└─────────────────────────────────┘
+```
+
+### Load More Position (ASC)
+```
+┌─────────────────────────────────┐
+│  [更多按钮] ← 按钮在顶部         │
+├─────────────────────────────────┤
+│  [新加载的老消息] ← prepend      │  ← 比最老的更老
+│         ↓                       │
+│         [msg1 - 最老]           │
+│         [msg2]                  │
+│         ...                     │
+│         [msg30 - 最新]          │
+│  [输入框]              [发送]   │
+└─────────────────────────────────┘
+```
+
 ---
 
 ## DESC Mode (Reverse)
@@ -77,6 +108,36 @@ Two message display modes: **asc** (queue/fifo) and **desc** (reverse/lifo).
 | Initial load | prepend | newest at top |
 | New message | prepend | newest at top |
 | Load more | append (after oldest) | older below oldest |
+
+### New Message Position (DESC)
+```
+┌─────────────────────────────────┐
+│           Header                 │
+├─────────────────────────────────┤
+│  [输入框]              [发送]    │
+│    [新消息] ← prepend 到这里     │  ← 输入框下方
+├─────────────────────────────────┤
+│         [msg1 - 最新]           │  ← 队列头
+│         [msg2]                  │
+│         ...                      │
+│         [msg30 - 最老]          │
+│         [更多按钮]               │  ← 队列尾
+└─────────────────────────────────┘
+```
+
+### Load More Position (DESC)
+```
+┌─────────────────────────────────┐
+│  [输入框]              [发送]   │
+│         [msg1 - 最新]           │
+│         [msg2]                  │
+│         ...                     │
+│         [msg30 - 最老]         │
+├─────────────────────────────────┤
+│  [新加载的消息] ← append        │  ← 比最老的更新
+│  [更多按钮] ← 按钮在底部         │
+└─────────────────────────────────┘
+```
 
 ---
 
