@@ -2378,9 +2378,18 @@ function addMsgOld(name, text, type = '', image = null, timestamp = null) {
   const loadMoreBtn = document.getElementById('load-more-btn');
 
   if (messageOrder === 'asc') {
-    // asc: button at top, use appendChild to add new messages after existing ones
-    // Backend returns [newest, ..., oldest], appendChild gives [oldest, ..., newest]
-    chatMessages.appendChild(div);
+    // asc: button at top, insert new messages after button (before existing messages)
+    const msgs = chatMessages.querySelectorAll('.msg[data-id]');
+    if (msgs.length > 0) {
+      // Insert before first existing message = after button
+      chatMessages.insertBefore(div, msgs[0]);
+    } else if (loadMoreBtn && loadMoreBtn.nextSibling) {
+      chatMessages.insertBefore(div, loadMoreBtn.nextSibling);
+    } else if (loadMoreBtn) {
+      chatMessages.insertBefore(div, loadMoreBtn);
+    } else {
+      chatMessages.appendChild(div);
+    }
   } else {
     // desc: button at bottom, insert before button
     if (loadMoreBtn) {
