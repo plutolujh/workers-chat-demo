@@ -617,6 +617,31 @@ body {
 .input-prompt {
   font-size: 18px;
   font-weight: 700;
+}
+
+.order-toggle {
+  width: 28px;
+  height: 28px;
+  background: var(--surface-hover);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.order-toggle:hover {
+  background: var(--surface-active);
+  color: var(--accent);
+}
+
+.order-toggle.asc {
+  color: var(--accent);
+}
   color: var(--accent);
   user-select: none;
 }
@@ -1456,6 +1481,7 @@ button:focus-visible {
         <button id="cancel-img-btn" type="button">✕</button>
       </div>
       <div class="input-row">
+        <button id="order-toggle" class="order-toggle" title="Toggle message order">↓</button>
         <span class="input-prompt">›</span>
         <input type="text" id="chat-input" placeholder="Type a message..." maxlength="256" autocomplete="off">
         <input type="file" id="image-input" accept="image/*" style="display:none">
@@ -1623,6 +1649,7 @@ let wroteWelcomeMessages = false;
 let currentWebSocket = null;
 let hasMoreMessages = false;
 let isLoadingMore = false;
+let messageOrder = localStorage.getItem('chat-order') || 'desc'; // 'desc' = newest first, 'asc' = oldest first
 
 let hostname = window.location.host || 'edge-chat-demo.plutolu.workers.dev';
 
@@ -1635,6 +1662,40 @@ const emojiPicker = document.getElementById('emoji-picker');
 const emojiGrid = document.getElementById('emoji-grid');
 const rosterList = document.getElementById('roster-list');
 const rosterCount = document.getElementById('roster-count');
+const orderToggle = document.getElementById('order-toggle');
+
+// Initialize order toggle UI
+if (orderToggle) {
+  updateOrderToggleUI();
+}
+
+function updateOrderToggleUI() {
+  if (messageOrder === 'desc') {
+    orderToggle.textContent = '↓';
+    orderToggle.classList.remove('asc');
+  } else {
+    orderToggle.textContent = '↑';
+    orderToggle.classList.add('asc');
+  }
+}
+
+orderToggle?.addEventListener('click', () => {
+  messageOrder = messageOrder === 'desc' ? 'asc' : 'desc';
+  localStorage.setItem('chat-order', messageOrder);
+  updateOrderToggleUI();
+  // Toggle message order by re-rendering
+  toggleMessageOrder();
+});
+
+function toggleMessageOrder() {
+  const msgs = Array.from(chatMessages.querySelectorAll('.msg[data-id]'));
+  const loadMoreBtn = document.getElementById('load-more-btn');
+  msgs.reverse();
+  msgs.forEach(msg => chatMessages.appendChild(msg));
+  if (loadMoreBtn) {
+    chatMessages.insertBefore(loadMoreBtn, chatMessages.firstChild);
+  }
+}
 const roomBadge = document.getElementById('room-badge');
 const nameOverlay = document.getElementById('name-overlay');
 const roomOverlay = document.getElementById('room-overlay');
