@@ -423,6 +423,13 @@ body {
   scroll-behavior: smooth;
 }
 
+.input-area {
+  padding: 12px 20px;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
 .chat-messages::-webkit-scrollbar {
   width: 6px;
 }
@@ -1443,7 +1450,6 @@ button:focus-visible {
 <!-- MAIN -->
 <main class="main">
   <div class="chat-panel">
-    <div id="chat-messages" class="chat-messages"></div>
     <div class="input-area">
       <div id="image-preview" class="image-preview" style="display:none">
         <img id="preview-img" src="" alt="Preview">
@@ -1462,6 +1468,7 @@ button:focus-visible {
         <div class="emoji-grid" id="emoji-grid"></div>
       </div>
     </div>
+    <div id="chat-messages" class="chat-messages"></div>
   </div>
   <aside class="roster-panel">
     <div class="roster-header">
