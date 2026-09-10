@@ -384,7 +384,11 @@ export class ChatRoom {
       }
 
       // Construct sanitized message for storage and broadcast.
-      data = { name: session.name, message: "" + data.message };
+      data = {
+        name: session.name,
+        message: "" + (data.message || ""),
+        image: data.image || null
+      };
 
       // Block people from sending overly long messages. This is also enforced on the client,
       // so to trigger this the user must be bypassing the client code.
