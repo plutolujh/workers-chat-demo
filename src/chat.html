@@ -2395,11 +2395,13 @@ function addMsgOld(name, text, type = '', image = null, timestamp = null) {
   const loadMoreBtn = document.getElementById('load-more-btn');
 
   if (messageOrder === 'asc') {
-    // asc: button at top, insert new messages after button (before existing messages)
+    // asc: button at top, newest at bottom near input
+    // Insert new messages after the newest (last existing message, closest to input)
     const msgs = chatMessages.querySelectorAll('.msg[data-id]');
     if (msgs.length > 0) {
-      // Insert before first existing message = after button
-      chatMessages.insertBefore(div, msgs[0]);
+      // Insert after the newest message (last in DOM list for asc)
+      const newestMsg = msgs[msgs.length - 1];
+      chatMessages.insertBefore(div, newestMsg.nextSibling);
     } else if (loadMoreBtn && loadMoreBtn.nextSibling) {
       chatMessages.insertBefore(div, loadMoreBtn.nextSibling);
     } else if (loadMoreBtn) {
@@ -2408,7 +2410,8 @@ function addMsgOld(name, text, type = '', image = null, timestamp = null) {
       chatMessages.appendChild(div);
     }
   } else {
-    // desc: button at bottom, insert before button
+    // desc: button at bottom, newest at top near input
+    // Insert new messages before button (after newest messages)
     if (loadMoreBtn) {
       chatMessages.insertBefore(div, loadMoreBtn);
     } else {
