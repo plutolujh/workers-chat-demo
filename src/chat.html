@@ -1674,6 +1674,17 @@ if (orderToggle) {
   updateOrderToggleUI();
 }
 
+// Initialize input area position based on message order
+const chatPanel = document.querySelector('.chat-panel');
+const inputArea = document.querySelector('.input-area');
+if (messageOrder === 'asc') {
+  chatPanel.appendChild(inputArea);
+  inputArea.classList.add('bottom');
+} else {
+  chatPanel.insertBefore(inputArea, chatMessages);
+  inputArea.classList.remove('bottom');
+}
+
 function updateOrderToggleUI() {
   if (messageOrder === 'desc') {
     orderToggle.textContent = '↓';
@@ -2172,7 +2183,7 @@ function joinWS() {
       const oldScrollTop = chatMessages.scrollTop;
 
       // Backend returns newest-first: [newest, ..., oldest]
-      // asc: prepend (no reverse) -> [newest, ..., oldest] with newest near input
+      // asc: forEach insertBefore(first msg) without reverse gives [oldest, ..., newest]
       // desc: will implement separately
       data.messages.forEach(msgStr => {
         const msg = JSON.parse(msgStr);
