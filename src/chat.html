@@ -2514,8 +2514,10 @@ function addMsg(name, text, type = '', image = null, timestamp = null, isHistory
       const hasNewSep = image.includes('::VIDEO::');
       const hasOldSep = image.includes('|VIDEO|');
       const isVideoCombined = hasNewSep || hasOldSep;
-      const isVideoMedia = isVideoFile(fileName);
-      console.log('Video check:', { isVideoCombined, isVideoMedia, fileName, hasNewSep, hasOldSep });
+      // Also check if it's a video URL (no thumbnail but has video extension)
+      const isVideoUrl = image.includes('/s/') && /\.(mp4|mov|m4v|avi|webm|hevc|hev)(&|$|\?)/i.test(image);
+      const isVideoMedia = isVideoFile(fileName) || isVideoUrl;
+      console.log('Video check:', { isVideoCombined, isVideoMedia, isVideoUrl, fileName, hasNewSep, hasOldSep });
       
       if (isVideoMedia && isVideoCombined) {
         // Video message: thumbnail as image, click to play video
@@ -2798,7 +2800,7 @@ function getFileIcon(filename) {
 function isVideoFile(filename) {
   if (!filename) return false;
   const ext = filename.split('.').pop().toLowerCase();
-  return ['mp4', 'mov', 'avi', 'mkv', 'webm', 'm4v', 'ogv'].includes(ext);
+  return ['mp4', 'mov', 'avi', 'mkv', 'webm', 'm4v', 'ogv', 'hevc', 'hev', 'heic', 'heif', '3gp'].includes(ext);
 }
 
 // Generate video thumbnail
