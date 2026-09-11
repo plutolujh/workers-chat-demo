@@ -588,6 +588,27 @@ body {
   cursor: pointer;
 }
 
+.msg-file {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: var(--surface-hover);
+  border-radius: 8px;
+  margin-top: 6px;
+  max-width: 280px;
+  cursor: pointer;
+}
+.msg-file-icon { font-size: 28px; flex-shrink: 0; }
+.msg-file-name {
+  font-size: 13px;
+  color: var(--text);
+  word-break: break-all;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 /* ===== INPUT AREA ===== */
 .input-area {
   padding: 14px 20px;
@@ -1841,6 +1862,7 @@ const previewImg = document.getElementById('preview-img');
 const cancelImgBtn = document.getElementById('cancel-img-btn');
 
 let selectedImageData = null;
+let selectedFileName = '';
 
 // Compress image, max 800px width, quality 0.7
 function compressImage(file, maxWidth = 800, quality = 0.7) {
@@ -1885,8 +1907,8 @@ async function uploadImage(blob, filename) {
   });
 
   if (!response.ok) throw new Error('Upload failed');
-  const { url } = await response.json();
-  return url;
+  const data = await response.json();
+  return data;
 }
 
 imageBtn.addEventListener('click', () => {
@@ -1916,12 +1938,15 @@ imageInput.addEventListener('change', async e => {
       blob = file;
       filename = file.name;
     }
-    selectedImageData = await uploadImage(blob, filename);
+    const result = await uploadImage(blob, filename);
+    selectedImageData = result.url;
+    selectedFileName = result.filename || filename;
     if (isImage) {
       previewImg.style.display = '';
-      previewImg.src = selectedImageData;
+      previewImg.src = result.url;
     } else {
       previewFile.style.display = 'inline';
+      previewFile.textContent = result.filename || filename;
     }
   } catch (err) {
     console.error('Upload failed:', err);
@@ -2046,10 +2071,12 @@ function sendMessage() {
   if ((text || selectedImageData) && currentWebSocket) {
     currentWebSocket.send(JSON.stringify({
       message: text,
-      image: selectedImageData
+      image: selectedImageData,
+      fileName: selectedFileName
     }));
     chatInput.value = '';
     selectedImageData = null;
+    selectedFileName = '';
     imagePreview.style.display = 'none';
   }
 }
@@ -2214,7 +2241,7 @@ function joinWS() {
       data.messages.forEach(msgStr => {
         const msg = JSON.parse(msgStr);
         console.log('DEBUG history timestamp:', msg.timestamp, 'Date.now():', Date.now(), 'new Date(timestamp):', new Date(msg.timestamp).toLocaleTimeString());
-        addMsgOld(msg.name, msg.message, '', msg.image, msg.timestamp);
+        addMsgOld(msg.name, msg.message, '', msg.image, msg.timestamp, msg.fileName);
       });
 
       // When desc order, maintain scroll position after adding messages
@@ -2236,7 +2263,7 @@ function joinWS() {
       }
     } else if (data.timestamp !== undefined && !displayedTimestamps.has(data.timestamp)) {
       console.log('DEBUG msg timestamp:', data.timestamp, 'Date.now():', Date.now(), 'new Date(timestamp):', new Date(data.timestamp).toLocaleTimeString());
-      addMsg(data.name, data.message, '', data.image, data.timestamp, false); // new message always appends
+      addMsg(data.name, data.message, '', data.image, data.timestamp, false, data.fileName); // new message always appends
       displayedTimestamps.add(data.timestamp);
     } else if (data.type === 'recall') {
       // Remove recalled message from UI
@@ -2288,7 +2315,7 @@ function recallSelectedMsg() {
   toggleRecallMode();
 }
 
-function addMsg(name, text, type = '', image = null, timestamp = null, isHistory = false) {
+function addMsg(name, text, type = '', image = null, timestamp = null, isHistory = false, fileName = '') {
   const div = document.createElement('div');
   div.className = 'msg' + (type ? ' ' + type : '');
   if (timestamp) {
@@ -2389,7 +2416,7 @@ function addMsg(name, text, type = '', image = null, timestamp = null, isHistory
 // Add old messages (for load more)
 // asc: insert new messages between button and existing oldest message
 // desc: insert new messages at top (newest at top, button at bottom)
-function addMsgOld(name, text, type = '', image = null, timestamp = null) {
+function addMsgOld(name, text, type = '', image = null, timestamp = null, fileName = '') {
   const div = document.createElement('div');
   div.className = 'msg' + (type ? ' ' + type : '');
   if (timestamp) {
@@ -2412,7 +2439,8 @@ function addMsgOld(name, text, type = '', image = null, timestamp = null) {
     }
 
     const time = timestamp ? new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    const imageHtml = image ? `<img class="msg-image" src="${image}" alt="Image">` : '';
+    const isImage = image && (!fileName || isImageFile(fileName));
+    const imageHtml = image ? (isImage ? `<img class="msg-image" src="${image}" alt="Image">` : `<div class="msg-file"><span class="msg-file-icon">${getFileIcon(fileName)}</span><span class="msg-file-name">${esc(fileName)}</span></div>`) : '';
     const isOwn = name === username;
     const recallBtn = isOwn && timestamp ? `<button class="msg-recall-btn" style="display:none;margin-top:4px;font-size:11px;padding:2px 8px;background:#666;color:#fff;border:none;border-radius:4px;cursor:pointer;text-align:center;width:auto;min-width:32px">${currentLang==='zh'?'↩️':'↩️'}</button>` : '';
 
@@ -2506,6 +2534,27 @@ function esc(str) {
   const d = document.createElement('div');
   d.textContent = str;
   return d.innerHTML;
+}
+
+function isImageFile(filename) {
+  if (!filename) return true;
+  const ext = filename.split('.').pop().toLowerCase();
+  return ['jpg','jpeg','png','webp','gif','svg','bmp','ico'].includes(ext);
+}
+
+function getFileIcon(filename) {
+  if (!filename) return '📁';
+  const ext = filename.split('.').pop().toLowerCase();
+  const iconMap = {
+    pdf: '📕', doc: '📝', docx: '📝',
+    xls: '📊', xlsx: '📊',
+    zip: '📦', rar: '📦', '7z': '📦',
+    html: '💻', css: '💻', js: '💻', json: '💻',
+    txt: '📃', md: '📃',
+    xml: '📃',
+    png: '🖼️', jpg: '🖼️', jpeg: '🖼️', webp: '🖼️', gif: '🖼️', svg: '🖼️', bmp: '🖼️', ico: '🖼️',
+  };
+  return iconMap[ext] || '📁';
 }
 
 function addUser(name) {

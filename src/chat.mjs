@@ -178,7 +178,9 @@ async function handleApiRequest(path, request, env) {
         }
 
         const { url } = await shareResponse.json();
-        return new Response(JSON.stringify({url}), {
+        const file = form.get("full");
+        const filename = file && typeof file === "object" && file.name ? file.name : "";
+        return new Response(JSON.stringify({url, filename}), {
           headers: {"Content-Type": "application/json"}
         });
       } catch (err) {
@@ -555,7 +557,8 @@ export class ChatRoom {
       data = {
         name: session.name,
         message: "" + (data.message || ""),
-        image: data.image || null
+        image: data.image || null,
+        fileName: data.fileName || ""
       };
 
       // Block people from sending overly long messages. This is also enforced on the client,
