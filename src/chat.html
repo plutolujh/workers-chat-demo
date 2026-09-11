@@ -1520,6 +1520,12 @@ button:focus-visible {
       <div id="image-preview" class="image-preview" style="display:none">
         <img id="preview-img" src="" alt="Preview">
         <span id="preview-file" style="display:none;font-size:12px;color:#aaa;max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span>
+        <div id="upload-progress" style="display:none;margin-top:6px;">
+          <div style="height:4px;background:var(--border);border-radius:2px;overflow:hidden;">
+            <div id="progress-bar" style="height:100%;width:0%;background:var(--accent);transition:width 0.2s;"></div>
+          </div>
+          <span id="progress-text" style="font-size:10px;color:var(--text-muted);margin-top:2px;"></span>
+        </div>
         <button id="cancel-img-btn" type="button">✕</button>
       </div>
       <div class="input-row">
@@ -1909,19 +1915,39 @@ function compressImage(file, maxWidth = 800, quality = 0.7) {
 }
 
 // Upload image via chat Worker proxy (token never exposed to frontend)
-async function uploadImage(blob, filename) {
-  const form = new FormData();
-  form.append('full', blob, filename);
-  form.append('roomId', roomname);
+async function uploadImage(blob, filename, onProgress) {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    const form = new FormData();
+    form.append('full', blob, filename);
+    form.append('roomId', roomname);
 
-  const response = await fetch('/api/upload', {
-    method: 'POST',
-    body: form
+    xhr.upload.addEventListener('progress', (e) => {
+      if (e.lengthComputable && onProgress) {
+        const percent = Math.round((e.loaded / e.total) * 100);
+        onProgress(percent, e.loaded, e.total);
+      }
+    });
+
+    xhr.addEventListener('load', () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        try {
+          const data = JSON.parse(xhr.responseText);
+          resolve(data);
+        } catch {
+          reject(new Error('Invalid response'));
+        }
+      } else {
+        reject(new Error('Upload failed: ' + xhr.status));
+      }
+    });
+
+    xhr.addEventListener('error', () => reject(new Error('Network error')));
+    xhr.addEventListener('abort', () => reject(new Error('Upload cancelled')));
+
+    xhr.open('POST', '/api/upload');
+    xhr.send(form);
   });
-
-  if (!response.ok) throw new Error('Upload failed');
-  const data = await response.json();
-  return data;
 }
 
 imageBtn.addEventListener('click', () => {
@@ -1929,6 +1955,27 @@ imageBtn.addEventListener('click', () => {
 });
 
 const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
+
+// Show/hide progress bar
+function showProgress(show, percent = 0, text = '') {
+  const progressEl = document.getElementById('upload-progress');
+  const bar = document.getElementById('progress-bar');
+  const textEl = document.getElementById('progress-text');
+  if (show) {
+    progressEl.style.display = 'block';
+    bar.style.width = percent + '%';
+    textEl.textContent = text;
+  } else {
+    progressEl.style.display = 'none';
+  }
+}
+
+// Format file size
+function formatSize(bytes) {
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+  return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+}
 
 imageInput.addEventListener('change', async e => {
   const file = e.target.files[0];
@@ -1945,50 +1992,83 @@ imageInput.addEventListener('change', async e => {
   previewImg.style.display = 'none';
   const previewFile = document.getElementById('preview-file');
   previewFile.style.display = 'none';
+  showProgress(false);
 
   const isImage = file.type.startsWith('image/') && !file.type.includes('svg');
   const isVideo = file.type.startsWith('video/');
   try {
     let blob, filename;
     if (isVideo) {
-      // Upload video file directly
+      // Upload video file directly with progress
       previewFile.style.display = 'inline';
       previewFile.textContent = '🎬 ' + file.name;
-      const videoResult = await uploadImage(file, file.name);
+      
+      const videoResult = await uploadImage(
+        file, 
+        file.name,
+        (percent, loaded, total) => {
+          showProgress(true, percent, `${currentLang === 'zh' ? '上传视频' : 'Uploading video'}: ${percent}%`);
+        }
+      );
+      
       // Generate and upload thumbnail
+      showProgress(true, 0, currentLang === 'zh' ? '生成缩略图...' : 'Generating thumbnail...');
       const thumbBlob = await generateVideoThumbnail(file);
+      showProgress(true, 50, currentLang === 'zh' ? '上传缩略图...' : 'Uploading thumbnail...');
       const thumbFilename = file.name.replace(/\.[^.]+$/, '') + '_thumb.jpg';
       const thumbResult = await uploadImage(thumbBlob, thumbFilename);
+      
       // Store video URL with thumbnail marker
       selectedImageData = thumbResult.url + '|VIDEO|' + videoResult.url;
       selectedFileName = file.name;
-      previewFile.textContent = '🎬 ' + file.name + ' (✓)';
+      previewFile.textContent = '🎬 ' + file.name + ' ✓';
+      showProgress(false);
     } else if (isImage) {
       // Compress image
       previewImg.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
       blob = await compressImage(file);
       filename = file.name.endsWith('.jpg') || file.name.endsWith('.jpeg') ? file.name : file.name.replace(/\.[^.]+$/, '') + '.jpg';
-      const result = await uploadImage(blob, filename);
+      
+      showProgress(true, 0, currentLang === 'zh' ? '上传图片...' : 'Uploading image...');
+      const result = await uploadImage(
+        blob, 
+        filename,
+        (percent) => showProgress(true, percent, `${percent}%`)
+      );
+      
       selectedImageData = result.url;
       selectedFileName = result.filename || filename;
       previewImg.style.display = '';
       previewImg.src = result.url;
+      showProgress(false);
     } else {
-      // Non-image/file: upload directly
+      // Non-image/file: upload directly with progress
       previewFile.style.display = 'inline';
       previewFile.textContent = file.name;
       blob = file;
       filename = file.name;
-      const result = await uploadImage(blob, filename);
+      
+      showProgress(true, 0, `${currentLang === 'zh' ? '上传中' : 'Uploading'}: ${formatSize(file.size)}`);
+      const result = await uploadImage(
+        blob, 
+        filename,
+        (percent, loaded, total) => {
+          showProgress(true, percent, `${currentLang === 'zh' ? '上传中' : 'Uploading'}: ${percent}% (${formatSize(loaded)}/${formatSize(total)})`);
+        }
+      );
+      
       selectedImageData = result.url;
       selectedFileName = result.filename || filename;
-      previewFile.textContent = (result.filename || filename) + ' (✓)';
+      previewFile.textContent = (result.filename || filename) + ' ✓';
+      showProgress(false);
     }
   } catch (err) {
     console.error('Upload failed:', err);
     selectedImageData = null;
     selectedFileName = '';
     imagePreview.style.display = 'none';
+    showProgress(false);
+    alert(currentLang === 'zh' ? '上传失败: ' + err.message : 'Upload failed: ' + err.message);
   }
   imageInput.value = '';
 });
