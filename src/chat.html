@@ -2025,15 +2025,23 @@ imageInput.addEventListener('change', async e => {
         }
       );
       
-      // Generate and upload thumbnail
-      showProgress(true, 0, currentLang === 'zh' ? '生成缩略图...' : 'Generating thumbnail...');
-      const thumbBlob = await generateVideoThumbnail(file);
-      showProgress(true, 50, currentLang === 'zh' ? '上传缩略图...' : 'Uploading thumbnail...');
-      const thumbFilename = file.name.replace(/\.[^.]+$/, '') + '_thumb.jpg';
-      const thumbResult = await uploadImage(thumbBlob, thumbFilename);
+      // Try to generate and upload thumbnail
+      let videoWithThumb = videoResult.url;
+      try {
+        showProgress(true, 0, currentLang === 'zh' ? '生成缩略图...' : 'Generating thumbnail...');
+        const thumbBlob = await generateVideoThumbnail(file);
+        showProgress(true, 50, currentLang === 'zh' ? '上传缩略图...' : 'Uploading thumbnail...');
+        const thumbFilename = file.name.replace(/\.[^.]+$/, '') + '_thumb.jpg';
+        const thumbResult = await uploadImage(thumbBlob, thumbFilename);
+        videoWithThumb = thumbResult.url + '::VIDEO::' + videoResult.url;
+      } catch (thumbErr) {
+        console.warn('Thumbnail generation failed, using video without thumbnail:', thumbErr);
+        // Fallback: just use video URL without thumbnail
+        videoWithThumb = videoResult.url;
+      }
       
-      // Store video URL with thumbnail marker
-      selectedImageData = thumbResult.url + '::VIDEO::' + videoResult.url;
+      // Store video URL
+      selectedImageData = videoWithThumb;
       selectedFileName = file.name;
       previewFile.textContent = '🎬 ' + file.name + ' ✓';
       showProgress(false);
