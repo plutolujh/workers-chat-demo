@@ -17,7 +17,7 @@ jobs:
 
       - name: Update version
         run: |
-          sed -i "s/v:AUTO/v:${{ steps.commit.outputs.hash }}/" src/chat.html
+          sed -i "s/v:AUTO/${{ steps.commit.outputs.hash }}/" src/chat.html
           sed -i "s/const VERSION = \"[0-9a-f]\{7\}\"/const VERSION = \"${{ steps.commit.outputs.hash }}\"/" src/chat.mjs
 
       - name: Setup Node.js

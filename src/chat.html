@@ -3033,7 +3033,7 @@ chatInput.focus();
     if (res.ok) {
       const { version } = await res.json();
       const badge = document.getElementById('version-badge');
-      if (badge) badge.textContent = 'v' + version;
+      if (badge) badge.textContent = 'v:' + version;
     }
   } catch {}
 })();
