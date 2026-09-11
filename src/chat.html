@@ -2225,7 +2225,7 @@ function sendMessage() {
         image: selectedImageData,
         fileName: selectedFileName
       });
-      console.log('Sending payload length:', payload.length);
+      console.log('Sending payload:', { image: selectedImageData ? selectedImageData.slice(0, 80) : null, fileName: selectedFileName, hasWebSocket: !!currentWebSocket });
       currentWebSocket.send(payload);
       chatInput.value = '';
       selectedImageData = null;
@@ -2424,10 +2424,15 @@ function joinWS() {
         hasMoreMessages = data.hasMore;
         updateLoadMoreButton();
       }
-    } else if (data.timestamp !== undefined && !displayedTimestamps.has(data.timestamp)) {
-      console.log('DEBUG msg timestamp:', data.timestamp, 'Date.now():', Date.now(), 'new Date(timestamp):', new Date(data.timestamp).toLocaleTimeString());
-      addMsg(data.name, data.message, '', data.image, data.timestamp, false, data.fileName); // new message always appends
-      displayedTimestamps.add(data.timestamp);
+    } else if (data.timestamp !== undefined) {
+      console.log('DEBUG msg received:', { timestamp: data.timestamp, image: data.image, fileName: data.fileName, inSet: displayedTimestamps.has(data.timestamp) });
+      if (!displayedTimestamps.has(data.timestamp)) {
+        console.log('DEBUG adding message:', { name: data.name, text: data.message, image: data.image ? data.image.slice(0, 80) : null, fileName: data.fileName });
+        addMsg(data.name, data.message, '', data.image, data.timestamp, false, data.fileName); // new message always appends
+        displayedTimestamps.add(data.timestamp);
+      } else {
+        console.log('DEBUG message already displayed, skipping');
+      }
     } else if (data.type === 'recall') {
       // Remove recalled message from UI
       const el = document.querySelector(`.msg[data-id="${data.messageId}"]`);
