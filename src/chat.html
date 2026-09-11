@@ -2205,16 +2205,25 @@ shareBtn.addEventListener('click', () => {
 // ===== SEND MESSAGE =====
 function sendMessage() {
   const text = chatInput.value.trim();
+  console.log('sendMessage called:', { text, selectedImageData, hasWebSocket: !!currentWebSocket });
   if ((text || selectedImageData) && currentWebSocket) {
-    currentWebSocket.send(JSON.stringify({
-      message: text,
-      image: selectedImageData,
-      fileName: selectedFileName
-    }));
-    chatInput.value = '';
-    selectedImageData = null;
-    selectedFileName = '';
-    imagePreview.style.display = 'none';
+    try {
+      currentWebSocket.send(JSON.stringify({
+        message: text,
+        image: selectedImageData,
+        fileName: selectedFileName
+      }));
+      chatInput.value = '';
+      selectedImageData = null;
+      selectedFileName = '';
+      imagePreview.style.display = 'none';
+      showProgress(false);
+    } catch (err) {
+      console.error('Send error:', err);
+    }
+  } else if (!currentWebSocket) {
+    console.warn('WebSocket not connected');
+    addMsg(null, currentLang === 'zh' ? '连接已断开，请刷新页面' : 'Disconnected, please refresh', 'error');
   }
 }
 
