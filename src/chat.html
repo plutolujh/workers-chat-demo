@@ -2206,27 +2206,40 @@ shareBtn.addEventListener('click', () => {
 });
 
 // ===== SEND MESSAGE =====
+let sendRetryTimer = null;
 function sendMessage() {
   const text = chatInput.value.trim();
-  console.log('sendMessage called:', { text, selectedImageData, hasWebSocket: !!currentWebSocket });
-  if ((text || selectedImageData) && currentWebSocket) {
+  console.log('sendMessage called:', { text, selectedImageData: selectedImageData ? '...' : null, hasWebSocket: !!currentWebSocket, state: currentWebSocket?.readyState });
+  
+  if (!currentWebSocket || currentWebSocket.readyState !== WebSocket.OPEN) {
+    console.warn('WebSocket not ready, state:', currentWebSocket?.readyState);
+    addMsg(null, currentLang === 'zh' ? '连接断开，请刷新页面' : 'Disconnected, please refresh', 'error');
+    return;
+  }
+  
+  if (text || selectedImageData) {
     try {
-      currentWebSocket.send(JSON.stringify({
+      const payload = JSON.stringify({
         message: text,
         image: selectedImageData,
         fileName: selectedFileName
-      }));
+      });
+      console.log('Sending payload length:', payload.length);
+      currentWebSocket.send(payload);
       chatInput.value = '';
       selectedImageData = null;
       selectedFileName = '';
       imagePreview.style.display = 'none';
+      previewImg.src = '';
+      previewImg.style.display = 'none';
       showProgress(false);
+      console.log('Message sent successfully');
     } catch (err) {
       console.error('Send error:', err);
+      addMsg(null, currentLang === 'zh' ? '发送失败: ' + err.message : 'Send failed: ' + err.message, 'error');
     }
-  } else if (!currentWebSocket) {
-    console.warn('WebSocket not connected');
-    addMsg(null, currentLang === 'zh' ? '连接已断开，请刷新页面' : 'Disconnected, please refresh', 'error');
+  } else {
+    console.warn('Nothing to send: text="' + text + '" selectedImageData=' + selectedImageData);
   }
 }
 
@@ -2507,6 +2520,7 @@ function addMsg(name, text, type = '', image = null, timestamp = null, isHistory
         // Video message: thumbnail as image, click to play video
         const parts = hasNewSep ? image.split('::VIDEO::') : image.split('|VIDEO|');
         const [thumbUrl, videoUrl] = parts;
+        console.log('Rendering video:', { thumbUrl, videoUrl, thumbUrlValid: thumbUrl.startsWith('http'), videoUrlValid: videoUrl.startsWith('http') });
         mediaHtml = `
           <div class="msg-video-wrapper" style="position:relative;display:inline-block;margin-top:6px;max-width:280px;">
             <img class="msg-image" src="${thumbUrl}" alt="Video thumbnail" style="border-radius:8px;cursor:pointer;max-width:100%;max-height:200px;" onclick="const v=this.closest('.msg-video-wrapper').querySelector('video');v.play().catch(()=>{});v.style.display='block';this.style.display='none';">
