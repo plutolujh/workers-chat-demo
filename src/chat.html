@@ -2349,7 +2349,7 @@ function startChat() {
   });
 
   document.body.addEventListener('click', e => {
-    if (window.getSelection().toString() === '' && e.target !== chatInput) {
+    if (window.getSelection().toString() === '' && e.target !== chatInput && !e.target.closest('.msg-video-wrapper')) {
       chatInput.focus();
     }
   });
