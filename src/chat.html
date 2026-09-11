@@ -1485,13 +1485,14 @@ button:focus-visible {
     <div class="input-area">
       <div id="image-preview" class="image-preview" style="display:none">
         <img id="preview-img" src="" alt="Preview">
+        <span id="preview-file" style="display:none;font-size:12px;color:#aaa;max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span>
         <button id="cancel-img-btn" type="button">✕</button>
       </div>
       <div class="input-row">
         <button id="order-toggle" class="order-toggle" title="Toggle message order">↓</button>
         <span class="input-prompt">›</span>
         <input type="text" id="chat-input" placeholder="Type a message..." maxlength="256" autocomplete="off">
-        <input type="file" id="image-input" accept="image/*" style="display:none">
+        <input type="file" id="image-input" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,.html,.css,.js,.json,.xml,.zip" style="display:none">
         <button id="image-btn" class="image-btn" type="button">🖼️</button>
         <button id="emoji-btn" class="emoji-btn" type="button">😊</button>
         <button id="recall-btn" class="recall-btn" type="button" style="display:none">↩️</button>
@@ -1894,23 +1895,38 @@ imageBtn.addEventListener('click', () => {
 
 imageInput.addEventListener('change', async e => {
   const file = e.target.files[0];
-  if (file && file.type.startsWith('image/')) {
-    // Show loading state
-    previewImg.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
-    imagePreview.style.display = 'inline-block';
+  if (!file) return;
+  imagePreview.style.display = 'inline-block';
+  previewImg.style.display = 'none';
+  const previewFile = document.getElementById('preview-file');
+  previewFile.style.display = 'none';
 
-    try {
-      // Compress and get blob
-      const blob = await compressImage(file);
-      // Upload via Worker proxy
-      selectedImageData = await uploadImage(blob, file.name);
-      // Show preview with public URL
-      previewImg.src = selectedImageData;
-    } catch (err) {
-      console.error('Upload failed:', err);
-      selectedImageData = null;
-      imagePreview.style.display = 'none';
+  const isImage = file.type.startsWith('image/') && !file.type.includes('svg');
+  try {
+    let blob, filename;
+    if (isImage) {
+      // Compress image
+      previewImg.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+      blob = await compressImage(file);
+      filename = file.name.endsWith('.jpg') || file.name.endsWith('.jpeg') ? file.name : file.name.replace(/\.[^.]+$/, '') + '.jpg';
+    } else {
+      // Non-image: upload directly
+      previewFile.style.display = 'inline';
+      previewFile.textContent = file.name;
+      blob = file;
+      filename = file.name;
     }
+    selectedImageData = await uploadImage(blob, filename);
+    if (isImage) {
+      previewImg.style.display = '';
+      previewImg.src = selectedImageData;
+    } else {
+      previewFile.style.display = 'inline';
+    }
+  } catch (err) {
+    console.error('Upload failed:', err);
+    selectedImageData = null;
+    imagePreview.style.display = 'none';
   }
   imageInput.value = '';
 });
