@@ -1954,7 +1954,7 @@ imageBtn.addEventListener('click', () => {
   imageInput.click();
 });
 
-const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
+const MAX_FILE_SIZE = 25 * 1024 * 1024; // 25MB (matches shotsync limit)
 
 // Show/hide progress bar
 function showProgress(show, percent = 0, text = '') {
