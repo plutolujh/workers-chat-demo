@@ -2496,13 +2496,16 @@ function addMsg(name, text, type = '', image = null, timestamp = null, isHistory
     let mediaHtml = '';
     if (image) {
       // Parse video format: thumbnailUrl::VIDEO::videoUrl (new) or thumbUrl|VIDEO|videoUrl (old fallback)
-      const isVideoCombined = image.includes('::VIDEO::') || (image.includes('|') && image.includes('VIDEO'));
+      // Must have explicit ::VIDEO:: or |VIDEO| separator (not just | in URL signature)
+      const hasNewSep = image.includes('::VIDEO::');
+      const hasOldSep = image.includes('|VIDEO|');
+      const isVideoCombined = hasNewSep || hasOldSep;
       const isVideoMedia = isVideoFile(fileName);
-      console.log('Video check:', { isVideoCombined, isVideoMedia, fileName, hasVIDEO: image.includes('VIDEO') });
+      console.log('Video check:', { isVideoCombined, isVideoMedia, fileName, hasNewSep, hasOldSep });
       
       if (isVideoMedia && isVideoCombined) {
         // Video message: thumbnail as image, click to play video
-        const parts = image.includes('::VIDEO::') ? image.split('::VIDEO::') : image.split('|VIDEO|');
+        const parts = hasNewSep ? image.split('::VIDEO::') : image.split('|VIDEO|');
         const [thumbUrl, videoUrl] = parts;
         mediaHtml = `
           <div class="msg-video-wrapper" style="position:relative;display:inline-block;margin-top:6px;max-width:280px;">
@@ -2629,11 +2632,13 @@ function addMsgOld(name, text, type = '', image = null, timestamp = null, fileNa
     let mediaHtml = '';
     if (image) {
       // Parse video format: thumbnailUrl::VIDEO::videoUrl (new) or thumbUrl|VIDEO|videoUrl (old fallback)
-      const isVideoCombined = image.includes('::VIDEO::') || (image.includes('|') && image.includes('VIDEO'));
+      const hasNewSep = image.includes('::VIDEO::');
+      const hasOldSep = image.includes('|VIDEO|');
+      const isVideoCombined = hasNewSep || hasOldSep;
       const isVideoMedia = isVideoFile(fileName);
 
       if (isVideoMedia && isVideoCombined) {
-        const parts = image.includes('::VIDEO::') ? image.split('::VIDEO::') : image.split('|VIDEO|');
+        const parts = hasNewSep ? image.split('::VIDEO::') : image.split('|VIDEO|');
         const [thumbUrl, videoUrl] = parts;
         mediaHtml = `
           <div class="msg-video-wrapper" style="position:relative;display:inline-block;margin-top:6px;max-width:280px;">
