@@ -2808,31 +2808,56 @@ function generateVideoThumbnail(file) {
     video.preload = 'metadata';
     video.muted = true;
     video.playsInline = true;
-    
+
     const url = URL.createObjectURL(file);
     video.src = url;
-    
+
+    // Timeout fallback - if video can't seek, use first frame
+    const timeout = setTimeout(() => {
+      URL.revokeObjectURL(url);
+      reject(new Error('Video thumbnail timeout'));
+    }, 10000);
+
     video.onloadedmetadata = () => {
-      video.currentTime = Math.min(1, video.duration / 2);
-    };
-    
-    video.onseeked = () => {
-      const canvas = document.createElement('canvas');
-      canvas.width = 320;
-      canvas.height = 180;
-      const ctx = canvas.getContext('2d');
-      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-      canvas.toBlob(blob => {
+      clearTimeout(timeout);
+      try {
+        video.currentTime = Math.min(1, video.duration / 2);
+      } catch (e) {
         URL.revokeObjectURL(url);
-        if (blob) {
-          resolve(blob);
-        } else {
-          reject(new Error('Failed to generate thumbnail'));
-        }
-      }, 'image/jpeg', 0.7);
+        reject(new Error('Cannot seek video'));
+        return;
+      }
+      // Set new timeout for seek
+      setTimeout(() => {
+        URL.revokeObjectURL(url);
+        reject(new Error('Video seek timeout'));
+      }, 5000);
     };
-    
+
+    video.onseeked = () => {
+      clearTimeout(timeout);
+      try {
+        const canvas = document.createElement('canvas');
+        canvas.width = 320;
+        canvas.height = 180;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        canvas.toBlob(blob => {
+          URL.revokeObjectURL(url);
+          if (blob) {
+            resolve(blob);
+          } else {
+            reject(new Error('Failed to generate thumbnail'));
+          }
+        }, 'image/jpeg', 0.7);
+      } catch (e) {
+        URL.revokeObjectURL(url);
+        reject(new Error('Canvas draw failed: ' + e.message));
+      }
+    };
+
     video.onerror = () => {
+      clearTimeout(timeout);
       URL.revokeObjectURL(url);
       reject(new Error('Failed to load video'));
     };
