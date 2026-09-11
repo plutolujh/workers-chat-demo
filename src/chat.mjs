@@ -162,6 +162,7 @@ async function handleApiRequest(path, request, env) {
 
         if (!uploadResponse.ok) {
           const err = await uploadResponse.text();
+          console.error("shotsync upload failed:", uploadResponse.status, err);
           return new Response(JSON.stringify({error: err}), {
             status: uploadResponse.status,
             headers: {"Content-Type": "application/json"}
@@ -180,6 +181,7 @@ async function handleApiRequest(path, request, env) {
 
         if (!shareResponse.ok) {
           const err = await shareResponse.text();
+          console.error("shotsync share failed:", shareResponse.status, err);
           return new Response(JSON.stringify({error: err}), {
             status: shareResponse.status,
             headers: {"Content-Type": "application/json"}
@@ -193,7 +195,8 @@ async function handleApiRequest(path, request, env) {
           headers: {"Content-Type": "application/json"}
         });
       } catch (err) {
-        return new Response(JSON.stringify({error: err.message}), {
+        console.error("upload error:", err);
+        return new Response(JSON.stringify({error: err.message, stack: err.stack}), {
           status: 500,
           headers: {"Content-Type": "application/json"}
         });
