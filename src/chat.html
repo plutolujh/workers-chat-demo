@@ -2789,6 +2789,18 @@ if (closeSidebar) {
 // Init
 chatInput.focus();
 
+// Fetch and display version
+(async () => {
+  try {
+    const res = await fetch('/version');
+    if (res.ok) {
+      const { version } = await res.json();
+      const badge = document.getElementById('version-badge');
+      if (badge) badge.textContent = 'v' + version;
+    }
+  } catch {}
+})();
+
 // iOS 键盘适配：监听 visualViewport 变化，键盘弹出时自动滚动输入框到可见区域
 if (typeof visualViewport !== 'undefined') {
   visualViewport.addEventListener('resize', () => {
