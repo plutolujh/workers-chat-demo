@@ -2490,6 +2490,7 @@ function addMsg(name, text, type = '', image = null, timestamp = null, isHistory
     }
 
     const time = timestamp ? new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    console.log('addMsg:', { name, text, image: image ? image.slice(0, 100) : null, fileName, timestamp });
 
     // Render image, video, or file attachment
     let mediaHtml = '';
@@ -2497,6 +2498,7 @@ function addMsg(name, text, type = '', image = null, timestamp = null, isHistory
       // Parse video format: thumbnailUrl::VIDEO::videoUrl (new) or thumbUrl|VIDEO|videoUrl (old fallback)
       const isVideoCombined = image.includes('::VIDEO::') || (image.includes('|') && image.includes('VIDEO'));
       const isVideoMedia = isVideoFile(fileName);
+      console.log('Video check:', { isVideoCombined, isVideoMedia, fileName, hasVIDEO: image.includes('VIDEO') });
       
       if (isVideoMedia && isVideoCombined) {
         // Video message: thumbnail as image, click to play video
