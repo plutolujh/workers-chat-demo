@@ -1995,6 +1995,8 @@ imageInput.addEventListener('change', async e => {
   const file = e.target.files[0];
   if (!file) return;
 
+  isUploading = true; // Mark as uploading
+
   // Check file size
   if (file.size > MAX_FILE_SIZE) {
     showUploadError(currentLang === 'zh' 
@@ -2095,6 +2097,7 @@ imageInput.addEventListener('change', async e => {
     selectedFileName = '';
     showUploadError(currentLang === 'zh' ? '上传失败: ' + err.message : 'Upload failed: ' + err.message);
   }
+  isUploading = false; // Upload complete
   imageInput.value = '';
 });
 
@@ -2209,8 +2212,16 @@ shareBtn.addEventListener('click', () => {
 
 // ===== SEND MESSAGE =====
 let sendRetryTimer = null;
+let isUploading = false; // Track if upload is in progress
+
 function sendMessage() {
   const text = chatInput.value.trim();
+
+  // Check if upload is still in progress
+  if (isUploading) {
+    addMsg(null, currentLang === 'zh' ? '正在上传中，请稍候...' : 'Still uploading, please wait...', 'error');
+    return;
+  }
   console.log('sendMessage called:', { text, selectedImageData: selectedImageData ? '...' : null, hasWebSocket: !!currentWebSocket, state: currentWebSocket?.readyState });
   
   if (!currentWebSocket || currentWebSocket.readyState !== WebSocket.OPEN) {
