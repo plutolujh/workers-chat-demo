@@ -2034,10 +2034,12 @@ imageInput.addEventListener('change', async e => {
         const thumbFilename = file.name.replace(/\.[^.]+$/, '') + '_thumb.jpg';
         const thumbResult = await uploadImage(thumbBlob, thumbFilename);
         videoWithThumb = thumbResult.url + '::VIDEO::' + videoResult.url;
+        console.log('Video upload success:', { videoUrl: videoResult.url, thumbUrl: thumbResult.url, combined: videoWithThumb });
       } catch (thumbErr) {
         console.warn('Thumbnail generation failed, using video without thumbnail:', thumbErr);
         // Fallback: just use video URL without thumbnail
         videoWithThumb = videoResult.url;
+        console.log('Video without thumbnail:', { videoUrl: videoResult.url });
       }
       
       // Store video URL
@@ -2045,6 +2047,7 @@ imageInput.addEventListener('change', async e => {
       selectedFileName = file.name;
       previewFile.textContent = '🎬 ' + file.name + ' ✓';
       showProgress(false);
+      console.log('selectedImageData set:', selectedImageData);
     } else if (isImage) {
       // Compress image
       previewImg.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
