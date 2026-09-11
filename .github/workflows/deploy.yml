@@ -15,8 +15,10 @@ jobs:
         id: commit
         run: echo "hash=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
 
-      - name: Update version in HTML
-        run: sed -i "s/v:AUTO/v:${{ steps.commit.outputs.hash }}/" src/chat.html
+      - name: Update version
+        run: |
+          sed -i "s/v:AUTO/v:${{ steps.commit.outputs.hash }}/" src/chat.html
+          sed -i "s/const VERSION = \"[0-9a-f]\{7\}\"/const VERSION = \"${{ steps.commit.outputs.hash }}\"/" src/chat.mjs
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
