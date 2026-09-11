@@ -2033,7 +2033,7 @@ imageInput.addEventListener('change', async e => {
       const thumbResult = await uploadImage(thumbBlob, thumbFilename);
       
       // Store video URL with thumbnail marker
-      selectedImageData = thumbResult.url + '|VIDEO|' + videoResult.url;
+      selectedImageData = thumbResult.url + '::VIDEO::' + videoResult.url;
       selectedFileName = file.name;
       previewFile.textContent = '🎬 ' + file.name + ' ✓';
       showProgress(false);
@@ -2474,13 +2474,13 @@ function addMsg(name, text, type = '', image = null, timestamp = null, isHistory
     // Render image, video, or file attachment
     let mediaHtml = '';
     if (image) {
-      // Parse video format: thumbnailUrl|VIDEO|videoUrl
-      const isVideoCombined = image.includes('|VIDEO|');
+      // Parse video format: thumbnailUrl::VIDEO::videoUrl
+      const isVideoCombined = image.includes('::VIDEO::');
       const isVideoMedia = isVideoFile(fileName);
       
       if (isVideoMedia && isVideoCombined) {
         // Video message: thumbnail as image, click to play video
-        const [thumbUrl, videoUrl] = image.split('|VIDEO|');
+        const [thumbUrl, videoUrl] = image.split('::VIDEO::');
         mediaHtml = `
           <div class="msg-video-wrapper" style="position:relative;display:inline-block;margin-top:6px;max-width:280px;">
             <img class="msg-image" src="${thumbUrl}" alt="Video thumbnail" style="border-radius:8px;cursor:pointer;max-width:100%;max-height:200px;" onclick="const v=this.closest('.msg-video-wrapper').querySelector('video');v.play().catch(()=>{});v.style.display='block';this.style.display='none';">
@@ -2605,12 +2605,12 @@ function addMsgOld(name, text, type = '', image = null, timestamp = null, fileNa
     // Render image, video, or file attachment
     let mediaHtml = '';
     if (image) {
-      // Parse video format: thumbnailUrl|VIDEO|videoUrl
-      const isVideoCombined = image.includes('|VIDEO|');
+      // Parse video format: thumbnailUrl::VIDEO::videoUrl
+      const isVideoCombined = image.includes('::VIDEO::');
       const isVideoMedia = isVideoFile(fileName);
 
       if (isVideoMedia && isVideoCombined) {
-        const [thumbUrl, videoUrl] = image.split('|VIDEO|');
+        const [thumbUrl, videoUrl] = image.split('::VIDEO::');
         mediaHtml = `
           <div class="msg-video-wrapper" style="position:relative;display:inline-block;margin-top:6px;max-width:280px;">
             <img class="msg-image" src="${thumbUrl}" alt="Video thumbnail" style="border-radius:8px;cursor:pointer;max-width:100%;max-height:200px;" onclick="const v=this.closest('.msg-video-wrapper').querySelector('video');if(v.paused){v.style.display='block';v.play();this.style.display='none';}else{v.pause();v.style.display='none';this.style.display='block';}">
