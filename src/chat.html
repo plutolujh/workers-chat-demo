@@ -2471,19 +2471,19 @@ function addMsg(name, text, type = '', image = null, timestamp = null, isHistory
         const [thumbUrl, videoUrl] = image.split('|VIDEO|');
         mediaHtml = `
           <div class="msg-video-wrapper" style="position:relative;display:inline-block;margin-top:6px;max-width:280px;">
-            <img class="msg-image" src="${thumbUrl}" alt="Video thumbnail" style="border-radius:8px;cursor:pointer;max-width:100%;max-height:200px;" onclick="const v=this.closest('.msg-video-wrapper').querySelector('video');if(v.paused){v.style.display='block';v.play();this.style.display='none';}else{v.pause();v.style.display='none';this.style.display='block';}">
-            <video class="msg-video" src="${videoUrl}" style="display:none;width:100%;max-height:300px;border-radius:8px;" controls playsinline onclick="this.style.display='none';this.previousElementSibling.style.display='block';"></video>
+            <img class="msg-image" src="${thumbUrl}" alt="Video thumbnail" style="border-radius:8px;cursor:pointer;max-width:100%;max-height:200px;" onclick="const v=this.closest('.msg-video-wrapper').querySelector('video');v.play().catch(()=>{});v.style.display='block';this.style.display='none';">
+            <video class="msg-video" src="${videoUrl}" style="display:none;width:100%;max-height:300px;border-radius:8px;" controls playsinline onclick="this.style.display='none';this.previousElementSibling.style.display='block';v.pause();"></video>
           </div>
         `;
       } else if (isVideoMedia) {
         // Fallback: video without thumbnail, show video icon
         mediaHtml = `
           <div class="msg-video-wrapper" style="position:relative;display:inline-block;margin-top:6px;max-width:280px;">
-            <div style="width:200px;height:120px;background:var(--surface-hover);border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:8px;" onclick="const v=this.closest('.msg-video-wrapper').querySelector('video');if(v.paused){v.style.display='block';this.style.display='none';v.play();}else{v.pause();v.style.display='none';this.style.display='flex';}">
+            <div style="width:200px;height:120px;background:var(--surface-hover);border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:8px;" onclick="const v=this.closest('.msg-video-wrapper').querySelector('video');v.play().catch(()=>{});v.style.display='block';this.style.display='none';">
               <span style="font-size:40px;">🎬</span>
               <span style="font-size:11px;color:var(--text-muted);">${esc(fileName || 'video')}</span>
             </div>
-            <video class="msg-video" src="${image}" style="display:none;width:100%;max-height:300px;border-radius:8px;" controls playsinline onclick="this.style.display='none';this.previousElementSibling.style.display='flex';"></video>
+            <video class="msg-video" src="${image}" style="display:none;width:100%;max-height:300px;border-radius:8px;" controls playsinline onclick="this.style.display='none';this.previousElementSibling.style.display='flex';v.pause();"></video>
           </div>
         `;
       } else if (isImageFile(fileName)) {
