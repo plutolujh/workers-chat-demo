@@ -1452,6 +1452,19 @@ button:focus-visible {
   outline: 2px solid var(--accent);
   background: var(--accent-glow);
 }
+
+/* ===== VIDEO MESSAGE ===== */
+.msg-video-wrapper:hover .msg-video-play {
+  background: rgba(0, 0, 0, 0.8);
+}
+
+.msg-video-play:hover {
+  transform: translate(-50%, -50%) scale(1.1);
+}
+
+.msg-video-play:active {
+  transform: translate(-50%, -50%) scale(0.95);
+}
   </style>
 </head>
 <body>
@@ -1513,7 +1526,7 @@ button:focus-visible {
         <button id="order-toggle" class="order-toggle" title="Toggle message order">↓</button>
         <span class="input-prompt">›</span>
         <input type="text" id="chat-input" placeholder="Type a message..." maxlength="256" autocomplete="off">
-        <input type="file" id="image-input" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,.html,.css,.js,.json,.xml,.zip" style="display:none">
+        <input type="file" id="image-input" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,.html,.css,.js,.json,.xml,.zip,video/*" style="display:none">
         <button id="image-btn" class="image-btn" type="button">🖼️</button>
         <button id="emoji-btn" class="emoji-btn" type="button">😊</button>
         <button id="recall-btn" class="recall-btn" type="button" style="display:none">↩️</button>
@@ -1915,42 +1928,66 @@ imageBtn.addEventListener('click', () => {
   imageInput.click();
 });
 
+const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
+
 imageInput.addEventListener('change', async e => {
   const file = e.target.files[0];
   if (!file) return;
+
+  // Check file size
+  if (file.size > MAX_FILE_SIZE) {
+    alert(currentLang === 'zh' ? '文件太大，最大支持 50MB' : 'File too large, max 50MB');
+    imageInput.value = '';
+    return;
+  }
+
   imagePreview.style.display = 'inline-block';
   previewImg.style.display = 'none';
   const previewFile = document.getElementById('preview-file');
   previewFile.style.display = 'none';
 
   const isImage = file.type.startsWith('image/') && !file.type.includes('svg');
+  const isVideo = file.type.startsWith('video/');
   try {
     let blob, filename;
-    if (isImage) {
+    if (isVideo) {
+      // Upload video file directly
+      previewFile.style.display = 'inline';
+      previewFile.textContent = '🎬 ' + file.name;
+      const videoResult = await uploadImage(file, file.name);
+      // Generate and upload thumbnail
+      const thumbBlob = await generateVideoThumbnail(file);
+      const thumbFilename = file.name.replace(/\.[^.]+$/, '') + '_thumb.jpg';
+      const thumbResult = await uploadImage(thumbBlob, thumbFilename);
+      // Store video URL with thumbnail marker
+      selectedImageData = thumbResult.url + '|VIDEO|' + videoResult.url;
+      selectedFileName = file.name;
+      previewFile.textContent = '🎬 ' + file.name + ' (✓)';
+    } else if (isImage) {
       // Compress image
       previewImg.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
       blob = await compressImage(file);
       filename = file.name.endsWith('.jpg') || file.name.endsWith('.jpeg') ? file.name : file.name.replace(/\.[^.]+$/, '') + '.jpg';
+      const result = await uploadImage(blob, filename);
+      selectedImageData = result.url;
+      selectedFileName = result.filename || filename;
+      previewImg.style.display = '';
+      previewImg.src = result.url;
     } else {
-      // Non-image: upload directly
+      // Non-image/file: upload directly
       previewFile.style.display = 'inline';
       previewFile.textContent = file.name;
       blob = file;
       filename = file.name;
-    }
-    const result = await uploadImage(blob, filename);
-    selectedImageData = result.url;
-    selectedFileName = result.filename || filename;
-    if (isImage) {
-      previewImg.style.display = '';
-      previewImg.src = result.url;
-    } else {
-      previewFile.style.display = 'inline';
-      previewFile.textContent = result.filename || filename;
+      const result = await uploadImage(blob, filename);
+      selectedImageData = result.url;
+      selectedFileName = result.filename || filename;
+      previewFile.textContent = (result.filename || filename) + ' (✓)';
     }
   } catch (err) {
     console.error('Upload failed:', err);
     selectedImageData = null;
+    selectedFileName = '';
     imagePreview.style.display = 'none';
   }
   imageInput.value = '';
@@ -2342,14 +2379,45 @@ function addMsg(name, text, type = '', image = null, timestamp = null, isHistory
 
     const time = timestamp ? new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-    // Image HTML with lazy loading (blur-up effect like WeChat)
-    const imageHtml = image ? `
-      <img class="msg-image loading" data-src="${image}" data-full="${image}"
-           src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
-           loading="lazy" alt="Image"
-           onload="this.classList.remove('loading'); this.classList.add('loaded')"
-           onerror="this.classList.remove('loading'); this.classList.add('loaded')">
-    ` : '';
+    // Render image, video, or file attachment
+    let mediaHtml = '';
+    if (image) {
+      // Parse video format: thumbnailUrl|VIDEO|videoUrl
+      const isVideoCombined = image.includes('|VIDEO|');
+      const isVideoMedia = isVideoFile(fileName);
+      
+      if (isVideoMedia && isVideoCombined) {
+        // Video message: thumbnail as image, click to play video
+        const [thumbUrl, videoUrl] = image.split('|VIDEO|');
+        mediaHtml = `
+          <div class="msg-video-wrapper" style="position:relative;display:inline-block;margin-top:6px;max-width:280px;">
+            <img class="msg-image" src="${thumbUrl}" alt="Video thumbnail" style="border-radius:8px;cursor:pointer;max-width:100%;max-height:200px;" onclick="const v=this.closest('.msg-video-wrapper').querySelector('video');if(v.paused){v.style.display='block';v.play();this.style.display='none';}else{v.pause();v.style.display='none';this.style.display='block';}">
+            <video class="msg-video" src="${videoUrl}" style="display:none;width:100%;max-height:300px;border-radius:8px;" controls playsinline onclick="this.style.display='none';this.previousElementSibling.style.display='block';"></video>
+          </div>
+        `;
+      } else if (isVideoMedia) {
+        // Fallback: video without thumbnail, just show play button
+        mediaHtml = `
+          <div class="msg-video-wrapper" style="position:relative;display:inline-block;margin-top:6px;max-width:280px;">
+            <img class="msg-image" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="Video" style="border-radius:8px;cursor:pointer;max-width:100%;max-height:200px;background:var(--surface-hover);display:flex;align-items:center;justify-content:center;" onclick="const v=this.closest('.msg-video-wrapper').querySelector('video');if(v.paused){v.style.display='block';v.play();this.style.display='none';}else{v.pause();v.style.display='none';this.style.display='block';}">
+            <span style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:32px;">▶</span>
+            <video class="msg-video" src="${image}" style="display:none;width:100%;max-height:300px;border-radius:8px;" controls playsinline onclick="this.style.display='none';this.previousElementSibling.style.display='block';"></video>
+          </div>
+        `;
+      } else if (isImageFile(fileName)) {
+        // Image
+        mediaHtml = `
+          <img class="msg-image loading" data-src="${image}" data-full="${image}"
+               src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
+               loading="lazy" alt="Image"
+               onload="this.classList.remove('loading'); this.classList.add('loaded')"
+               onerror="this.classList.remove('loading'); this.classList.add('loaded')">
+        `;
+      } else {
+        // Other file attachment
+        mediaHtml = `<div class="msg-file"><span class="msg-file-icon">${getFileIcon(fileName)}</span><span class="msg-file-name">${esc(fileName)}</span></div>`;
+      }
+    }
 
     const isOwn = name === username;
     // Recall button only shown when selected in recall mode
@@ -2363,7 +2431,7 @@ function addMsg(name, text, type = '', image = null, timestamp = null, isHistory
           <span class="msg-time">${time}</span>
         </div>
         <div class="msg-text">${esc(text)}</div>
-        ${imageHtml}
+        ${mediaHtml}
         ${recallBtn}
       </div>
     `;
@@ -2439,8 +2507,36 @@ function addMsgOld(name, text, type = '', image = null, timestamp = null, fileNa
     }
 
     const time = timestamp ? new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    const isImage = image && (!fileName || isImageFile(fileName));
-    const imageHtml = image ? (isImage ? `<img class="msg-image" src="${image}" alt="Image">` : `<div class="msg-file"><span class="msg-file-icon">${getFileIcon(fileName)}</span><span class="msg-file-name">${esc(fileName)}</span></div>`) : '';
+
+    // Render image, video, or file attachment
+    let mediaHtml = '';
+    if (image) {
+      // Parse video format: thumbnailUrl|VIDEO|videoUrl
+      const isVideoCombined = image.includes('|VIDEO|');
+      const isVideoMedia = isVideoFile(fileName);
+
+      if (isVideoMedia && isVideoCombined) {
+        const [thumbUrl, videoUrl] = image.split('|VIDEO|');
+        mediaHtml = `
+          <div class="msg-video-wrapper" style="position:relative;display:inline-block;margin-top:6px;max-width:280px;">
+            <img class="msg-image" src="${thumbUrl}" alt="Video thumbnail" style="border-radius:8px;cursor:pointer;max-width:100%;max-height:200px;" onclick="const v=this.closest('.msg-video-wrapper').querySelector('video');if(v.paused){v.style.display='block';v.play();this.style.display='none';}else{v.pause();v.style.display='none';this.style.display='block';}">
+            <video class="msg-video" src="${videoUrl}" style="display:none;width:100%;max-height:300px;border-radius:8px;" controls playsinline onclick="this.style.display='none';this.previousElementSibling.style.display='block';"></video>
+          </div>
+        `;
+      } else if (isVideoMedia) {
+        mediaHtml = `
+          <div class="msg-video-wrapper" style="position:relative;display:inline-block;margin-top:6px;max-width:280px;">
+            <img class="msg-image" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="Video" style="border-radius:8px;cursor:pointer;max-width:100%;max-height:200px;background:var(--surface-hover);" onclick="const v=this.closest('.msg-video-wrapper').querySelector('video');if(v.paused){v.style.display='block';v.play();this.style.display='none';}else{v.pause();v.style.display='none';this.style.display='block';}">
+            <span style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:32px;">▶</span>
+            <video class="msg-video" src="${image}" style="display:none;width:100%;max-height:300px;border-radius:8px;" controls playsinline onclick="this.style.display='none';this.previousElementSibling.style.display='block';"></video>
+          </div>
+        `;
+      } else if (isImageFile(fileName)) {
+        mediaHtml = `<img class="msg-image" src="${image}" alt="Image">`;
+      } else {
+        mediaHtml = `<div class="msg-file"><span class="msg-file-icon">${getFileIcon(fileName)}</span><span class="msg-file-name">${esc(fileName)}</span></div>`;
+      }
+    }
     const isOwn = name === username;
     const recallBtn = isOwn && timestamp ? `<button class="msg-recall-btn" style="display:none;margin-top:4px;font-size:11px;padding:2px 8px;background:#666;color:#fff;border:none;border-radius:4px;cursor:pointer;text-align:center;width:auto;min-width:32px">${currentLang==='zh'?'↩️':'↩️'}</button>` : '';
 
@@ -2451,8 +2547,8 @@ function addMsgOld(name, text, type = '', image = null, timestamp = null, fileNa
           <span class="msg-name">${esc(displayName)}</span>
           <span class="msg-time">${time}</span>
         </div>
-        ${imageHtml}
         <div class="msg-text">${esc(text)}</div>
+        ${mediaHtml}
         ${recallBtn}
       </div>
     `;
@@ -2553,8 +2649,53 @@ function getFileIcon(filename) {
     txt: '📃', md: '📃',
     xml: '📃',
     png: '🖼️', jpg: '🖼️', jpeg: '🖼️', webp: '🖼️', gif: '🖼️', svg: '🖼️', bmp: '🖼️', ico: '🖼️',
+    mp4: '🎬', mov: '🎬', avi: '🎬', mkv: '🎬', webm: '🎬', m4v: '🎬',
   };
   return iconMap[ext] || '📁';
+}
+
+function isVideoFile(filename) {
+  if (!filename) return false;
+  const ext = filename.split('.').pop().toLowerCase();
+  return ['mp4', 'mov', 'avi', 'mkv', 'webm', 'm4v', 'ogv'].includes(ext);
+}
+
+// Generate video thumbnail
+function generateVideoThumbnail(file) {
+  return new Promise((resolve, reject) => {
+    const video = document.createElement('video');
+    video.preload = 'metadata';
+    video.muted = true;
+    video.playsInline = true;
+    
+    const url = URL.createObjectURL(file);
+    video.src = url;
+    
+    video.onloadedmetadata = () => {
+      video.currentTime = Math.min(1, video.duration / 2);
+    };
+    
+    video.onseeked = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = 320;
+      canvas.height = 180;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      canvas.toBlob(blob => {
+        URL.revokeObjectURL(url);
+        if (blob) {
+          resolve(blob);
+        } else {
+          reject(new Error('Failed to generate thumbnail'));
+        }
+      }, 'image/jpeg', 0.7);
+    };
+    
+    video.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error('Failed to load video'));
+    };
+  });
 }
 
 function addUser(name) {

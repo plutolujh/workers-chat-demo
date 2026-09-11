@@ -10,8 +10,14 @@ Cloudflare Workers 实时聊天应用。
 Actions workflow: `.github/workflows/deploy.yml`
 
 ## 环境变量
-- `SHOTSYNC_URL`: 图片上传服务 URL
-- `SHOTSYNC_TOKEN`: 图片上传 token（通过 `wrangler secret put` 设置）
+- `SHOTSYNC_URL`: 图片/视频上传服务 URL
+- `SHOTSYNC_TOKEN`: 图片/视频上传 token（通过 `wrangler secret put` 设置）
+
+## 文件支持
+
+- **图片**: 压缩后上传（最大宽度 800px，质量 0.7）
+- **视频**: 上传原文件 + 自动生成缩略图（最大 50MB）
+- **其他文件**: 直接上传（PDF, DOC, XLS, TXT 等）
 
 ## 消息排序模式
 
