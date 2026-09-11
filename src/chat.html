@@ -1526,6 +1526,7 @@ button:focus-visible {
           </div>
           <span id="progress-text" style="font-size:10px;color:var(--text-muted);margin-top:2px;"></span>
         </div>
+        <div id="upload-error" style="display:none;margin-top:6px;font-size:12px;color:var(--error);"></div>
         <button id="cancel-img-btn" type="button">✕</button>
       </div>
       <div class="input-row">
@@ -1961,6 +1962,8 @@ function showProgress(show, percent = 0, text = '') {
   const progressEl = document.getElementById('upload-progress');
   const bar = document.getElementById('progress-bar');
   const textEl = document.getElementById('progress-text');
+  const errorEl = document.getElementById('upload-error');
+  errorEl.style.display = 'none';
   if (show) {
     progressEl.style.display = 'block';
     bar.style.width = percent + '%';
@@ -1968,6 +1971,15 @@ function showProgress(show, percent = 0, text = '') {
   } else {
     progressEl.style.display = 'none';
   }
+}
+
+// Show upload error
+function showUploadError(msg) {
+  const progressEl = document.getElementById('upload-progress');
+  const errorEl = document.getElementById('upload-error');
+  progressEl.style.display = 'none';
+  errorEl.style.display = 'block';
+  errorEl.textContent = msg;
 }
 
 // Format file size
@@ -1983,7 +1995,9 @@ imageInput.addEventListener('change', async e => {
 
   // Check file size
   if (file.size > MAX_FILE_SIZE) {
-    alert(currentLang === 'zh' ? '文件太大，最大支持 50MB' : 'File too large, max 50MB');
+    showUploadError(currentLang === 'zh' 
+      ? `文件太大，最大支持 ${MAX_FILE_SIZE / (1024*1024)}MB` 
+      : `File too large, max ${MAX_FILE_SIZE / (1024*1024)}MB`);
     imageInput.value = '';
     return;
   }
@@ -2066,9 +2080,7 @@ imageInput.addEventListener('change', async e => {
     console.error('Upload failed:', err);
     selectedImageData = null;
     selectedFileName = '';
-    imagePreview.style.display = 'none';
-    showProgress(false);
-    alert(currentLang === 'zh' ? '上传失败: ' + err.message : 'Upload failed: ' + err.message);
+    showUploadError(currentLang === 'zh' ? '上传失败: ' + err.message : 'Upload failed: ' + err.message);
   }
   imageInput.value = '';
 });
