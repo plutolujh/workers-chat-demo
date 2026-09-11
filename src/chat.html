@@ -2807,37 +2807,36 @@ function isVideoFile(filename) {
 function generateVideoThumbnail(file) {
   return new Promise((resolve, reject) => {
     const video = document.createElement('video');
-    video.preload = 'metadata';
+    video.preload = 'auto';
     video.muted = true;
     video.playsInline = true;
+    video.crossOrigin = 'anonymous';
 
     const url = URL.createObjectURL(file);
     video.src = url;
 
-    // Timeout fallback - if video can't seek, use first frame
+    // Overall timeout
     const timeout = setTimeout(() => {
       URL.revokeObjectURL(url);
       reject(new Error('Video thumbnail timeout'));
-    }, 10000);
+    }, 15000);
 
-    video.onloadedmetadata = () => {
-      clearTimeout(timeout);
-      try {
-        video.currentTime = Math.min(1, video.duration / 2);
-      } catch (e) {
-        URL.revokeObjectURL(url);
-        reject(new Error('Cannot seek video'));
-        return;
-      }
-      // Set new timeout for seek
-      setTimeout(() => {
+    // Seek timeout
+    let seekTimeout = null;
+    const startSeek = () => {
+      clearTimeout(seekTimeout);
+      seekTimeout = setTimeout(() => {
         URL.revokeObjectURL(url);
         reject(new Error('Video seek timeout'));
-      }, 5000);
+      }, 8000);
     };
 
-    video.onseeked = () => {
+    const cleanup = () => {
       clearTimeout(timeout);
+      clearTimeout(seekTimeout);
+    };
+
+    const captureFrame = () => {
       try {
         const canvas = document.createElement('canvas');
         canvas.width = 320;
@@ -2845,23 +2844,63 @@ function generateVideoThumbnail(file) {
         const ctx = canvas.getContext('2d');
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
         canvas.toBlob(blob => {
+          cleanup();
           URL.revokeObjectURL(url);
-          if (blob) {
+          if (blob && blob.size > 0) {
             resolve(blob);
           } else {
-            reject(new Error('Failed to generate thumbnail'));
+            reject(new Error('Empty thumbnail'));
           }
         }, 'image/jpeg', 0.7);
       } catch (e) {
+        cleanup();
         URL.revokeObjectURL(url);
-        reject(new Error('Canvas draw failed: ' + e.message));
+        reject(new Error('Canvas draw failed'));
+      }
+    };
+
+    video.onloadedmetadata = () => {
+      try {
+        // Try to seek to 0.5 second or middle
+        const targetTime = Math.min(0.5, video.duration / 2);
+        if (video.seekable && video.seekable.length > 0) {
+          video.currentTime = targetTime;
+          startSeek();
+        } else {
+          // If can't seek, try playing briefly then capture
+          video.play().then(() => {
+            video.pause();
+            captureFrame();
+          }).catch(() => {
+            cleanup();
+            URL.revokeObjectURL(url);
+            reject(new Error('Cannot play video'));
+          });
+        }
+      } catch (e) {
+        cleanup();
+        URL.revokeObjectURL(url);
+        reject(new Error('Cannot seek'));
+      }
+    };
+
+    video.onseeked = () => {
+      clearTimeout(seekTimeout);
+      captureFrame();
+    };
+
+    video.oncanplay = () => {
+      // If metadata already loaded and we haven't seeked yet
+      if (video.readyState >= 1 && video.currentTime === 0) {
+        video.currentTime = 0.1;
+        startSeek();
       }
     };
 
     video.onerror = () => {
-      clearTimeout(timeout);
+      cleanup();
       URL.revokeObjectURL(url);
-      reject(new Error('Failed to load video'));
+      reject(new Error('Video load error'));
     };
   });
 }
