@@ -2552,7 +2552,7 @@ function addMsg(name, text, type = '', image = null, timestamp = null, isHistory
           mediaHtml = `
             <div class="msg-video-wrapper" style="position:relative;display:inline-block;margin-top:6px;max-width:280px;">
               <img class="msg-image" src="${thumbUrl}" alt="Video thumbnail" style="border-radius:8px;cursor:pointer;max-width:100%;max-height:200px;" onclick="event.stopPropagation();const v=this.closest('.msg-video-wrapper').querySelector('video');v.play().catch(()=>{});v.style.display='block';this.style.display='none';">
-              <video class="msg-video" src="${videoUrl}" style="display:none;width:100%;max-height:300px;border-radius:8px;" controls playsinline onclick="event.stopPropagation();this.style.display='none';this.previousElementSibling.style.display='block';v.pause();"></video>
+              <video class="msg-video" src="${videoUrl}" style="display:none;width:100%;max-height:300px;border-radius:8px;" controls playsinline onclick="event.stopPropagation();this.pause();this.style.display='none';this.previousElementSibling.style.display='block';"></video>
             </div>
           `;
         }
@@ -2566,7 +2566,7 @@ function addMsg(name, text, type = '', image = null, timestamp = null, isHistory
               <span style="font-size:40px;">🎬</span>
               <span style="font-size:11px;color:var(--text-muted);">${esc(fileName || 'video')}</span>
             </div>
-            <video class="msg-video" src="${image}" style="display:none;width:100%;max-height:300px;border-radius:8px;" controls playsinline onclick="event.stopPropagation();this.style.display='none';this.previousElementSibling.style.display='flex';v.pause();"></video>
+            <video class="msg-video" src="${image}" style="display:none;width:100%;max-height:300px;border-radius:8px;" controls playsinline onclick="event.stopPropagation();this.pause();this.style.display='none';this.previousElementSibling.style.display='flex';"></video>
           </div>
         `;
       } else if (isImageFile(fileName)) {
