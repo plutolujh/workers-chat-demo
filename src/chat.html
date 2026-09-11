@@ -1996,12 +1996,14 @@ imageInput.addEventListener('change', async e => {
   if (!file) return;
 
   isUploading = true; // Mark as uploading
+  console.log('FILE_SELECTED:', { name: file.name, type: file.type, size: file.size });
 
   // Check file size
   if (file.size > MAX_FILE_SIZE) {
-    showUploadError(currentLang === 'zh' 
-      ? `文件太大，最大支持 ${MAX_FILE_SIZE / (1024*1024)}MB` 
+    showUploadError(currentLang === 'zh'
+      ? `文件太大，最大支持 ${MAX_FILE_SIZE / (1024*1024)}MB`
       : `File too large, max ${MAX_FILE_SIZE / (1024*1024)}MB`);
+    isUploading = false;
     imageInput.value = '';
     return;
   }
@@ -2014,6 +2016,7 @@ imageInput.addEventListener('change', async e => {
 
   const isImage = file.type.startsWith('image/') && !file.type.includes('svg');
   const isVideo = file.type.startsWith('video/');
+  console.log('FILE_TYPE_CHECK:', { isImage, isVideo, type: file.type });
   try {
     let blob, filename;
     if (isVideo) {
@@ -2051,7 +2054,13 @@ imageInput.addEventListener('change', async e => {
       selectedFileName = file.name;
       previewFile.textContent = '🎬 ' + file.name + ' ✓';
       showProgress(false);
-      console.log('selectedImageData set:', selectedImageData);
+      console.log('UPLOAD_COMPLETE_VIDEO:', { selectedImageData: selectedImageData ? selectedImageData.slice(0, 80) : null, selectedFileName });
+      // Show debug on screen
+      const debugEl = document.getElementById('debug-info');
+      if (debugEl) {
+        debugEl.style.display = 'block';
+        debugEl.textContent = `UPLOAD_DONE: ${file.name}`;
+      }
     } else if (isImage) {
       // Compress image
       previewImg.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
@@ -2619,15 +2628,17 @@ function addMsg(name, text, type = '', image = null, timestamp = null, isHistory
     // Lazy load images using Intersection Observer
     if (image) {
       const img = div.querySelector('.msg-image');
-      const observer = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-          if (entry.isIntersecting) {
-            img.src = img.dataset.src;
-            observer.unobserve(img);
-          }
-        });
-      }, { rootMargin: '100px' });
-      observer.observe(img);
+      if (img && img.dataset && img.dataset.src) {
+        const observer = new IntersectionObserver((entries) => {
+          entries.forEach(entry => {
+            if (entry.isIntersecting) {
+              img.src = img.dataset.src;
+              observer.unobserve(img);
+            }
+          });
+        }, { rootMargin: '100px' });
+        observer.observe(img);
+      }
     }
   }
 
