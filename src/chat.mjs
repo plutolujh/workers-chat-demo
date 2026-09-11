@@ -61,8 +61,8 @@
 // KV to serve assets.)
 import HTML from "./chat.html";
 
-// Version from package.json - inlined at build time
-const VERSION = "1.0.0";
+// Version from git commit hash - replaced at build time via wrangler.toml
+const VERSION = "b65d967";
 
 // `handleErrors()` is a little utility function that can wrap an HTTP request handler in a
 // try/catch and return errors to the client. You probably wouldn't want to use this in production
