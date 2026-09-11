@@ -2560,15 +2560,24 @@ function addMsg(name, text, type = '', image = null, timestamp = null, isHistory
       if (isVideoMedia && isVideoCombined) {
         // Video message: thumbnail as image, click to play video
         const parts = hasNewSep ? image.split('::VIDEO::') : image.split('|VIDEO|');
-        const [thumbUrl, videoUrl] = parts;
+        const thumbUrl = parts[0] || '';
+        const videoUrl = parts[1] || '';
         console.log('Rendering video:', { thumbUrl, videoUrl, thumbUrlValid: thumbUrl.startsWith('http'), videoUrlValid: videoUrl.startsWith('http') });
-        mediaHtml = `
-          <div class="msg-video-wrapper" style="position:relative;display:inline-block;margin-top:6px;max-width:280px;">
-            <img class="msg-image" src="${thumbUrl}" alt="Video thumbnail" style="border-radius:8px;cursor:pointer;max-width:100%;max-height:200px;" onclick="const v=this.closest('.msg-video-wrapper').querySelector('video');v.play().catch(()=>{});v.style.display='block';this.style.display='none';">
-            <video class="msg-video" src="${videoUrl}" style="display:none;width:100%;max-height:300px;border-radius:8px;" controls playsinline onclick="this.style.display='none';this.previousElementSibling.style.display='block';v.pause();"></video>
-          </div>
-        `;
-      } else if (isVideoMedia) {
+        if (!thumbUrl || !videoUrl) {
+          // Invalid format, treat as regular video
+          isVideoMedia = true;
+          isVideoCombined = false;
+        } else {
+          mediaHtml = `
+            <div class="msg-video-wrapper" style="position:relative;display:inline-block;margin-top:6px;max-width:280px;">
+              <img class="msg-image" src="${thumbUrl}" alt="Video thumbnail" style="border-radius:8px;cursor:pointer;max-width:100%;max-height:200px;" onclick="const v=this.closest('.msg-video-wrapper').querySelector('video');v.play().catch(()=>{});v.style.display='block';this.style.display='none';">
+              <video class="msg-video" src="${videoUrl}" style="display:none;width:100%;max-height:300px;border-radius:8px;" controls playsinline onclick="this.style.display='none';this.previousElementSibling.style.display='block';v.pause();"></video>
+            </div>
+          `;
+        }
+      }
+
+      if (isVideoMedia && !isVideoCombined) {
         // Fallback: video without thumbnail, show video icon
         mediaHtml = `
           <div class="msg-video-wrapper" style="position:relative;display:inline-block;margin-top:6px;max-width:280px;">
