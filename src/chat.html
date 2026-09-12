@@ -2734,7 +2734,7 @@ document.addEventListener('click', e => {
   }
   if (img && img.closest('.msg-video-wrapper')) return;
   
-  // Handle PDF click - use XHR to bypass CORS/iframe restrictions
+  // Handle PDF click - open in new tab since shotsync needs auth
   const pdfWrapper = e.target.closest('.msg-pdf-wrapper');
   if (pdfWrapper) {
     e.preventDefault();
@@ -2742,43 +2742,12 @@ document.addEventListener('click', e => {
     const url = pdfWrapper.dataset.pdfUrl;
     if (!url) return;
     
-    viewerScrollRestore = chatMessages.scrollTop;
-    viewer.classList.add('active', 'pdf-mode');
-    viewerImg.style.display = 'none';
-    
-    // Show loading state
-    const existingIframe = viewer.querySelector('iframe');
-    if (existingIframe) existingIframe.remove();
-    
-    const iframe = document.createElement('iframe');
-    iframe.className = 'pdf-embed';
-    iframe.style.background = '#333';
-    iframe.textContent = 'Loading PDF...';
-    viewer.querySelector('#viewer-img-wrap').appendChild(iframe);
-    
-    // Use XHR to fetch PDF (includes cookies for auth)
-    const xhr = new XMLHttpRequest();
-    xhr.open('GET', url, true);
-    xhr.responseType = 'blob';
-    xhr.onload = function() {
-      if (xhr.status === 200) {
-        const blobUrl = URL.createObjectURL(xhr.response);
-        iframe.src = blobUrl;
-        iframe.onload = function() {
-          iframe.style.background = '';
-        };
-      } else {
-        iframe.srcdoc = '<html><body style="color:white;padding:20px;">Failed to load PDF (status: ' + xhr.status + ')</body></html>';
-      }
-    };
-    xhr.onerror = function() {
-      iframe.srcdoc = '<html><body style="color:white;padding:20px;">Network error loading PDF</body></html>';
-    };
-    xhr.send();
+    // Open PDF in new tab (it will have proper cookies/auth)
+    window.open(url, '_blank');
     return;
   }
   
-  // Handle Office files - use XHR + blob URL  
+  // Handle Office files - open in new tab
   const officeWrapper = e.target.closest('.msg-office-wrapper');
   if (officeWrapper) {
     e.preventDefault();
@@ -2786,39 +2755,8 @@ document.addEventListener('click', e => {
     const url = officeWrapper.dataset.officeUrl;
     if (!url) return;
     
-    viewerScrollRestore = chatMessages.scrollTop;
-    viewer.classList.add('active', 'office-mode');
-    viewerImg.style.display = 'none';
-    
-    const existingIframe = viewer.querySelector('iframe');
-    if (existingIframe) existingIframe.remove();
-    
-    const iframe = document.createElement('iframe');
-    iframe.className = 'office-embed';
-    iframe.style.background = '#f5f5f5';
-    iframe.textContent = 'Loading document...';
-    viewer.querySelector('#viewer-img-wrap').appendChild(iframe);
-    
-    // For Office files, we still need to use Office Online since they can't be viewed directly
-    // But first check if we can fetch it
-    const xhr = new XMLHttpRequest();
-    xhr.open('GET', url, true);
-    xhr.responseType = 'blob';
-    xhr.onload = function() {
-      if (xhr.status === 200) {
-        // For Office files, use Office Online viewer with blob
-        const blobUrl = URL.createObjectURL(xhr.response);
-        // Try to use Office Online, fallback to error message
-        iframe.src = 'https://view.officeapps.live.com/op/view.aspx?src=' + encodeURIComponent(blobUrl);
-      } else {
-        // Fallback: show error
-        iframe.srcdoc = '<html><body style="padding:20px;"><h2>无法预览此文件</h2><p>请下载后查看</p><a href="' + url + '" download>下载文件</a></body></html>';
-      }
-    };
-    xhr.onerror = function() {
-      iframe.srcdoc = '<html><body style="padding:20px;"><h2>加载失败</h2><a href="' + url + '" download>下载文件</a></body></html>';
-    };
-    xhr.send();
+    // Open in new tab with Office Online viewer
+    window.open('https://view.officeapps.live.com/op/view.aspx?src=' + encodeURIComponent(url), '_blank');
     return;
   }
   const url = img.dataset.full || img.dataset.src || img.src;
