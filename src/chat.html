@@ -527,43 +527,61 @@ body {
   color: var(--error);
 }
 
-/* ===== WECHAT STYLE: Compact bubbles, all messages on left ===== */
+/* ===== WECHAT STYLE: Own messages on RIGHT, right-aligned bubble ===== */
+.msg.own {
+  flex-direction: row-reverse;
+}
+
+.msg.own .msg-body {
+  align-items: flex-end;
+  text-align: right;
+}
+
+.msg.own .msg-header {
+  flex-direction: row-reverse;
+}
+
 .msg.own .msg-text {
   background: var(--accent);
   color: var(--bg);
   padding: 8px 12px;
-  border-radius: 12px 12px 12px 4px;
-  max-width: max-content;
+  border-radius: 16px 4px 16px 16px;
   display: inline-block;
+  text-align: left;
 }
 
 .msg.own .msg-image {
-  border-radius: 12px 12px 12px 4px;
-  max-width: 280px;
+  border-radius: 16px 4px 16px 16px;
+  max-width: 260px;
 }
 
 .msg.own .msg-video-container {
-  border-radius: 12px 12px 12px 4px;
-  max-width: 280px;
+  border-radius: 16px 4px 16px 16px;
+  max-width: 260px;
+}
+
+.msg.own .msg-pdf-wrapper > div,
+.msg.own .msg-office-wrapper > div,
+.msg.own .msg-file {
+  flex-direction: row-reverse;
 }
 
 .msg:not(.own) .msg-text {
   background: var(--surface-hover);
   color: var(--text);
   padding: 8px 12px;
-  border-radius: 12px 12px 12px 4px;
-  max-width: max-content;
+  border-radius: 4px 16px 16px 16px;
   display: inline-block;
 }
 
 .msg:not(.own) .msg-image {
-  border-radius: 12px 12px 12px 4px;
-  max-width: 280px;
+  border-radius: 4px 16px 16px 16px;
+  max-width: 260px;
 }
 
 .msg:not(.own) .msg-video-container {
-  border-radius: 12px 12px 12px 4px;
-  max-width: 280px;
+  border-radius: 4px 16px 16px 16px;
+  max-width: 260px;
 }
 
 /* ===== IMAGE PREVIEW ===== */
@@ -3711,7 +3729,9 @@ function isVideoFile(filename) {
 function isPDFFile(filename) {
   if (!filename) return false;
   const ext = filename.split('.').pop().toLowerCase();
-  return ext === 'pdf';
+  const isPdf = ext === 'pdf';
+  console.log('isPDFFile check:', { filename, ext, isPdf });
+  return isPdf;
 }
 
 function isDocFile(filename) {
