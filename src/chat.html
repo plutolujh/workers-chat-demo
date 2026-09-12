@@ -3629,6 +3629,12 @@ function isVideoFile(filename) {
   return ['mp4', 'mov', 'avi', 'mkv', 'webm', 'm4v', 'ogv', 'hevc', 'hev', 'heic', 'heif', '3gp'].includes(ext);
 }
 
+function isPDFFile(filename) {
+  if (!filename) return false;
+  const ext = filename.split('.').pop().toLowerCase();
+  return ext === 'pdf';
+}
+
 // MutationObserver to watch for new placeholder elements being added to chat
 const chatObserver = new MutationObserver((mutations) => {
   for (const m of mutations) {
