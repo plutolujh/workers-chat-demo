@@ -2629,6 +2629,11 @@ const viewerWrap = document.getElementById('viewer-img-wrap');
 
 function openImageViewer(url) {
   if (!url) return;
+  // Prevent multiple calls
+  if (openImageViewer.locked) return;
+  openImageViewer.locked = true;
+  setTimeout(() => { openImageViewer.locked = false; }, 500);
+  
   currentViewerUrl = url;
   viewerScale = 1;
   viewerRotation = 0;
