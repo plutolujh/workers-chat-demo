@@ -614,6 +614,18 @@ body {
 #image-viewer {
   display: none;
   position: fixed;
+}
+
+#image-viewer.pdf-mode #viewer-toolbar { display: none !important; }
+#image-viewer.pdf-mode #viewer-hint { display: none !important; }
+#image-viewer.pdf-mode #viewer-img-wrap { background: transparent; }
+
+.pdf-embed {
+  width: 100%;
+  height: 100%;
+  border: none;
+  background: #525659;
+}
   inset: 0;
   z-index: 9999;
   background: rgba(0,0,0,0.92);
@@ -2630,6 +2642,30 @@ document.addEventListener('click', e => {
   const img = e.target.closest('.msg-image');
   // Skip if this img is inside a video wrapper (video thumbnails should not open viewer)
   if (!img || img.closest('.msg-video-wrapper')) return;
+  
+  // Handle PDF click
+  const pdfWrapper = e.target.closest('.msg-pdf-wrapper');
+  if (pdfWrapper) {
+    e.preventDefault();
+    e.stopPropagation();
+    const pdfUrl = pdfWrapper.dataset.pdfUrl;
+    if (!pdfUrl) return;
+    
+    viewerScrollRestore = chatMessages.scrollTop;
+    viewer.classList.add('active', 'pdf-mode');
+    viewerImg.style.display = 'none';
+    
+    // Remove existing iframe if any
+    const existingIframe = viewer.querySelector('iframe');
+    if (existingIframe) existingIframe.remove();
+    
+    // Create iframe for PDF
+    const iframe = document.createElement('iframe');
+    iframe.className = 'pdf-embed';
+    iframe.src = pdfUrl;
+    viewer.querySelector('#viewer-img-wrap').appendChild(iframe);
+    return;
+  }
   const url = img.dataset.full || img.dataset.src || img.src;
   console.log('Image click:', { url: url ? url.slice(0, 100) : null, dataFull: img.dataset.full, dataSrc: img.dataset.src, src: img.src.slice(0, 100) });
   if (url && url.startsWith('http')) {
@@ -3322,6 +3358,20 @@ function addMsg(name, text, type = '', image = null, timestamp = null, isHistory
                loading="lazy" alt="Image"
                onload="this.classList.remove('loading'); this.classList.add('loaded')"
                onerror="this.classList.remove('loading'); this.classList.add('loaded')">
+        `;
+      } else if (isPDFFile(fileName)) {
+        // PDF - click to view
+        mediaHtml = `
+          <div class="msg-pdf-wrapper" data-pdf-url="${esc(image)}" style="cursor:pointer;display:inline-block;margin-top:6px;max-width:280px;">
+            <div style="background:var(--surface-hover);border-radius:8px;padding:16px;display:flex;align-items:center;gap:12px;border:1px solid var(--border);">
+              <span style="font-size:32px;">📕</span>
+              <div style="flex:1;min-width:0;">
+                <div style="font-size:13px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(fileName)}</div>
+                <div style="font-size:11px;color:var(--text-muted);">PDF</div>
+              </div>
+              <span style="font-size:18px;opacity:0.6;">👆</span>
+            </div>
+          </div>
         `;
       } else {
         // Other file attachment
