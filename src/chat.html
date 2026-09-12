@@ -2308,7 +2308,8 @@ viewerWrap.addEventListener('touchend', () => { lastTouchDist = null; });
 // Image in message click to open viewer
 document.addEventListener('click', e => {
   const img = e.target.closest('.msg-image');
-  if (!img) return;
+  // Skip if this img is inside a video wrapper (video thumbnails should not open viewer)
+  if (!img || img.closest('.msg-video-wrapper')) return;
   const url = img.dataset.full || img.dataset.src || img.src;
   console.log('Image click:', { url: url ? url.slice(0, 100) : null, dataFull: img.dataset.full, dataSrc: img.dataset.src, src: img.src.slice(0, 100) });
   if (url && url.startsWith('http')) {
@@ -2554,80 +2555,54 @@ function startChat() {
   // Generate video thumbnail on first click for videos without thumbnail
   chatMessages.addEventListener('click', async e => {
     const placeholder = e.target.closest('.msg-video-thumb-placeholder');
-    const target = e.target;
-    const targetClass = target.className || '';
-    const targetTag = target.tagName || '';
-    const targetParent = target.parentElement ? target.parentElement.className : '';
-    console.log('[chat click]', { tag: targetTag, class: targetClass, parentClass: targetParent, hasPlaceholder: !!placeholder, placeholderClass: placeholder ? placeholder.className : '' });
     if (!placeholder) return;
     e.stopPropagation();
     
-    // If thumbnail already generated, play video directly
+    // If thumbnail already generated, play video
     if (placeholder.dataset.thumbGenerated === 'true') {
       const wrapper = placeholder.closest('.msg-video-wrapper');
       const video = wrapper ? wrapper.querySelector('video') : null;
       if (video) {
         video.style.display = 'block';
         video.play().catch(() => {});
-        wrapper.style.display = 'none';
+        // Hide placeholder children, show video
+        const orig = placeholder.querySelectorAll('.thumb-loading, span');
+        orig.forEach(c => c.style.display = 'none');
       }
       return;
     }
     
+    // First click: generate thumbnail
     const videoSrc = placeholder.dataset.videoSrc;
-    
-    // Show loading spinner
     const loadingEl = placeholder.querySelector('.thumb-loading');
     if (loadingEl) loadingEl.textContent = '⏳';
-    // If no .thumb-loading span, this is the generated wrapper - skip
-    if (!loadingEl) return;
+    if (!loadingEl) return; // already generated
     
     try {
-      // Fetch video as blob
       const res = await fetch(videoSrc);
-      if (!res.ok) throw new Error('Failed to fetch video');
-      const videoBlob = await res.blob();
-      
-      // Generate thumbnail
-      const thumbBlob = await generateVideoThumbnail(videoBlob);
-      
-      // Create object URL and replace placeholder with thumbnail
+      if (!res.ok) throw new Error('fetch failed');
+      const blob = await res.blob();
+      const thumbBlob = await generateVideoThumbnail(blob);
       const thumbUrl = URL.createObjectURL(thumbBlob);
       
-      // Replace placeholder with img
+      placeholder.dataset.thumbGenerated = 'true';
+      // Hide original children (loading + text)
+      const orig = placeholder.querySelectorAll('.thumb-loading, span');
+      orig.forEach(c => c.style.display = 'none');
+      // Add img and playIcon
       const img = document.createElement('img');
       img.src = thumbUrl;
-      img.alt = fileName;
-      img.style.cssText = 'width:140px;height:80px;object-fit:cover;border-radius:8px;cursor:pointer;';
-      img.onclick = (ev) => {
-        ev.stopPropagation();
-        const wrapper = placeholder.closest('.msg-video-wrapper');
-        const video = wrapper.querySelector('video');
-        if (video.paused) {
-          video.style.display = 'block';
-          placeholder.style.display = 'none';
-          video.play().catch(() => {});
-        } else {
-          video.pause();
-          video.style.display = 'none';
-          placeholder.style.display = 'flex';
-        }
-      };
-      
-      placeholder.replaceWith(img);
+      img.style.cssText = 'width:140px;height:80px;object-fit:cover;border-radius:8px;display:block;pointer-events:none;';
+      const playIcon = document.createElement('div');
+      playIcon.textContent = '▶';
+      playIcon.style.cssText = 'position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:28px;color:#fff;text-shadow:0 1px 4px rgba(0,0,0,0.8);pointer-events:none;';
+      placeholder.appendChild(img);
+      placeholder.appendChild(playIcon);
     } catch (err) {
-      console.warn('Failed to generate video thumbnail:', err);
-      // Restore play icon
       const loading = placeholder.querySelector('.thumb-loading');
       if (loading) loading.textContent = '🎬';
-      // Fallback: just play the video directly
-      const wrapper = placeholder.closest('.msg-video-wrapper');
-      const video = wrapper.querySelector('video');
-      placeholder.style.display = 'none';
-      video.style.display = 'block';
-      video.play().catch(() => {});
     }
-  }, true);
+  });
 
   joinWS();
 }
@@ -3113,12 +3088,13 @@ const chatObserver = new MutationObserver((mutations) => {
   for (const m of mutations) {
     for (const node of m.addedNodes) {
       if (node.nodeType !== 1) continue;
-      // Skip if this node itself is the generated wrapper
-      if (node.dataset && node.dataset.thumbGenerated === 'true') continue;
-      const placeholder = node.querySelector ? node.querySelector('.msg-video-thumb-placeholder') : null;
-      // Skip if the placeholder is the generated wrapper
-      if (placeholder && placeholder.dataset && placeholder.dataset.thumbGenerated === 'true') continue;
-      if (placeholder) generateVideoThumbForPlaceholder(placeholder);
+      if (node.classList && node.classList.contains('msg-video-thumb-placeholder') && node.dataset.thumbGenerated !== 'true') {
+        generateVideoThumbForPlaceholder(node);
+      }
+      const children = node.querySelectorAll ? node.querySelectorAll('.msg-video-thumb-placeholder') : [];
+      for (const child of children) {
+        if (child.dataset.thumbGenerated !== 'true') generateVideoThumbForPlaceholder(child);
+      }
     }
   }
 });
@@ -3127,8 +3103,6 @@ chatObserver.observe(chatMessages, { childList: true, subtree: true });
 // Generate thumbnail for a placeholder element in the DOM
 async function generateVideoThumbForPlaceholder(placeholder) {
   const videoSrc = placeholder.dataset.videoSrc;
-  // Skip if this is the auto-generated thumbnail wrapper (not original placeholder)
-  if (placeholder.dataset.thumbGenerated === 'true') return;
   if (!videoSrc) return;
   try {
     const loadingEl = placeholder.querySelector('.thumb-loading');
@@ -3138,49 +3112,24 @@ async function generateVideoThumbForPlaceholder(placeholder) {
     const blob = await res.blob();
     const thumbBlob = await generateVideoThumbnail(blob);
     const thumbUrl = URL.createObjectURL(thumbBlob);
-    // Wrap in a div that acts like the placeholder for click-to-play
-    const wrapper = document.createElement('div');
-    wrapper.className = 'msg-video-thumb-placeholder';
-    wrapper.dataset.videoSrc = videoSrc;
-    wrapper.dataset.thumbGenerated = 'true'; // marker to skip in MutationObserver
-    wrapper.style.cssText = 'width:140px;height:80px;position:relative;cursor:pointer;user-select:none;';
+    // Mark placeholder as generated
+    placeholder.dataset.thumbGenerated = 'true';
+    // Hide the existing placeholder content (loading + text), show generated content
+    const origChildren = placeholder.querySelectorAll('.thumb-loading, span');
+    origChildren.forEach(c => c.style.display = 'none');
+    // Inject img and play icon into the placeholder div
     const img = document.createElement('img');
     img.src = thumbUrl;
     img.style.cssText = 'width:140px;height:80px;object-fit:cover;border-radius:8px;display:block;pointer-events:none;';
     const playIcon = document.createElement('div');
     playIcon.textContent = '▶';
     playIcon.style.cssText = 'position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:28px;color:#fff;text-shadow:0 1px 4px rgba(0,0,0,0.8);pointer-events:none;';
-    wrapper.appendChild(img);
-    wrapper.appendChild(playIcon);
-    wrapper.onclick = (ev) => {
-      ev.stopPropagation();
-      console.log('[video click] wrapper onclick', { videoSrc: wrapper.dataset.videoSrc });
-      const videoWrapper = wrapper.closest('.msg-video-wrapper');
-      const video = videoWrapper ? videoWrapper.querySelector('video') : null;
-      console.log('[video click]', { videoWrapper: !!videoWrapper, video: !!video, videoSrc: video ? video.src : null });
-      if (video) {
-        video.style.display = 'block';
-        video.play().catch(e => console.warn('[video play error]', e));
-        wrapper.style.display = 'none';
-        // When video pauses or ends, show thumbnail again
-        const onPauseOrEnd = () => {
-          if (videoWrapper) {
-            video.style.display = 'none';
-            wrapper.style.display = '';
-          }
-          video.removeEventListener('pause', onPauseOrEnd);
-          video.removeEventListener('ended', onPauseOrEnd);
-        };
-        video.addEventListener('pause', onPauseOrEnd);
-        video.addEventListener('ended', onPauseOrEnd);
-      }
-    };
-    placeholder.replaceWith(wrapper);
+    placeholder.appendChild(img);
+    placeholder.appendChild(playIcon);
   } catch (err) {
     console.warn('Auto video thumb failed:', err);
     const loading = placeholder.querySelector('.thumb-loading');
     if (loading) loading.textContent = '🎬';
-    // Show user-friendly error
     const toast = document.createElement('div');
     toast.textContent = '视频加载失败';
     toast.style = 'position:fixed;bottom:60px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.8);color:#fff;padding:8px 16px;border-radius:20px;font-size:13px;z-index:9999;';
