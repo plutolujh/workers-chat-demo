@@ -1531,17 +1531,115 @@ button:focus-visible {
   background: var(--accent-glow);
 }
 
-/* ===== VIDEO MESSAGE ===== */
-.msg-video-wrapper:hover .msg-video-play {
-  background: rgba(0, 0, 0, 0.8);
+/* ===== VIDEO MESSAGE V2: Blurred Thumb + Big Play + Progress Download ===== */
+.msg-video-container {
+  position: relative;
+  display: inline-block;
+  margin-top: 6px;
+  max-width: 280px;
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--surface-hover);
+  cursor: pointer;
 }
 
-.msg-video-play:hover {
+.msg-video-thumb {
+  width: 100%;
+  max-height: 160px;
+  object-fit: cover;
+  border-radius: 10px;
+  filter: blur(8px) brightness(0.7);
+  transition: filter 0.3s ease;
+}
+
+.msg-video-container:hover .msg-video-thumb {
+  filter: blur(12px) brightness(0.5);
+}
+
+.msg-video-play-btn {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 56px;
+  height: 56px;
+  background: rgba(0, 0, 0, 0.65);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  color: #fff;
+  transition: background 0.2s, transform 0.15s;
+  backdrop-filter: blur(4px);
+  border: 2px solid rgba(255, 255, 255, 0.3);
+}
+
+.msg-video-container:hover .msg-video-play-btn {
+  background: rgba(0, 0, 0, 0.85);
   transform: translate(-50%, -50%) scale(1.1);
 }
 
-.msg-video-play:active {
+.msg-video-play-btn:active {
   transform: translate(-50%, -50%) scale(0.95);
+}
+
+.msg-video-progress-wrap {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.msg-video-progress-bar {
+  height: 100%;
+  background: var(--accent);
+  width: 0%;
+  transition: width 0.15s ease-out;
+}
+
+.msg-video-close-btn {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 26px;
+  height: 26px;
+  background: rgba(0, 0, 0, 0.6);
+  border: none;
+  border-radius: 50%;
+  color: #fff;
+  font-size: 14px;
+  cursor: pointer;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  transition: background 0.2s;
+  backdrop-filter: blur(4px);
+}
+
+.msg-video-container:hover .msg-video-close-btn.visible {
+  display: flex;
+}
+
+.msg-video-close-btn:hover {
+  background: rgba(0, 0, 0, 0.85);
+}
+
+.msg-video-player {
+  width: 100%;
+  max-height: 300px;
+  border-radius: 10px;
+  display: none;
+  background: #000;
+}
+
+.msg-video-player.visible {
+  display: block;
+}
+
 }
   </style>
 </head>
@@ -2552,77 +2650,81 @@ function startChat() {
   // Removed: auto-focus on body click was disruptive
   // Focus is now only set when user explicitly taps/clicks the input area
 
-  // Generate video thumbnail on first click for videos without thumbnail
+  // Video playback: blurred thumb + big play + progress download
   chatMessages.addEventListener('click', async e => {
-    const placeholder = e.target.closest('.msg-video-thumb-placeholder');
-    if (!placeholder) return;
-    e.stopPropagation();
+    const container = e.target.closest('.msg-video-container');
+    if (!container) return;
     
-    // If thumbnail already generated, play video
-    if (placeholder.dataset.thumbGenerated === 'true') {
-      const wrapper = placeholder.closest('.msg-video-wrapper');
-      const video = wrapper ? wrapper.querySelector('video') : null;
-      if (video) {
-        video.style.display = 'block';
-        video.play().catch(() => {});
-        // Hide placeholder children and icons
-        const orig = placeholder.querySelectorAll('.thumb-loading, span');
-        orig.forEach(c => c.style.display = 'none');
-        placeholder.querySelectorAll('div, img').forEach(d => { d.style.display = 'none'; });
-        // Hide native video controls overlay
-        video.removeAttribute('controls');
+    // If clicking the close button, handle close
+    if (e.target.closest('.msg-video-close-btn')) return;
+    
+    // If video is already loaded/playing, toggle it
+    const player = container.querySelector('.msg-video-player');
+    const playBtn = container.querySelector('.msg-video-play-btn');
+    const progressBar = container.querySelector('.msg-video-progress-bar');
+    
+    // If player is visible and paused, or has src - toggle it
+    if (player.classList.contains('visible') || player.src) {
+      if (player.paused) {
+        player.play();
+      } else {
+        player.pause();
+        player.classList.remove('visible');
+        playBtn.style.display = 'flex';
       }
       return;
     }
     
-    // First click: generate thumbnail
-    const videoSrc = placeholder.dataset.videoSrc;
-    const loadingEl = placeholder.querySelector('.thumb-loading');
-    if (loadingEl) loadingEl.textContent = '⏳';
-    if (!loadingEl) return; // already generated
+    // Start download with progress
+    const videoSrc = container.dataset.videoSrc;
+    playBtn.style.display = 'none';
+    progressBar.style.width = '0%';
     
-    try {
-      const res = await fetch(videoSrc);
-      if (!res.ok) throw new Error('fetch failed');
-      const blob = await res.blob();
-      const thumbBlob = await generateVideoThumbnail(blob);
-      const thumbUrl = URL.createObjectURL(thumbBlob);
+    // XHR download with progress
+    const xhr = new XMLHttpRequest();
+    xhr.open('GET', videoSrc, true);
+    xhr.responseType = 'blob';
+    xhr.onprogress = (ev) => {
+      if (ev.lengthComputable) progressBar.style.width = (ev.loaded / ev.total * 100) + '%';
+    };
+    xhr.onload = () => {
+      progressBar.style.width = '100%';
+      setTimeout(() => { progressBar.style.width = '0%'; }, 300);
       
-      placeholder.dataset.thumbGenerated = 'true';
-      // Hide original children (loading + text)
-      const orig = placeholder.querySelectorAll('.thumb-loading, span');
-      orig.forEach(c => c.style.display = 'none');
-      // Add img, playIcon and closeIcon
-      const img = document.createElement('img');
-      img.src = thumbUrl;
-      img.style.cssText = 'width:140px;height:80px;object-fit:cover;border-radius:8px;display:block;pointer-events:none;';
-      const playIcon = document.createElement('div');
-      playIcon.textContent = '▶';
-      playIcon.style.cssText = 'position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:28px;color:#fff;text-shadow:0 1px 4px rgba(0,0,0,0.8);pointer-events:none;';
-      const closeIcon = document.createElement('div');
-      closeIcon.textContent = '✕';
-      closeIcon.style.cssText = 'position:absolute;top:4px;right:4px;font-size:14px;color:#fff;background:rgba(0,0,0,0.5);width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;';
-      closeIcon.onclick = (ev) => {
-        ev.stopPropagation();
-        const wrapper = placeholder.closest('.msg-video-wrapper');
-        const video = wrapper ? wrapper.querySelector('video') : null;
-        if (video) { video.pause(); video.style.display = 'none'; }
-        placeholder.style.display = 'flex';
-        const orig = placeholder.querySelectorAll('.thumb-loading, span');
-        orig.forEach(c => c.style.display = '');
-        // Remove all generated children (img, icons) from placeholder
-        const gen = placeholder.querySelectorAll('img, div');
-        gen.forEach(c => c.remove());
-        video.setAttribute('controls', '');
-      };
-      placeholder.appendChild(img);
-      placeholder.appendChild(playIcon);
-      placeholder.appendChild(closeIcon);
-    } catch (err) {
-      const loading = placeholder.querySelector('.thumb-loading');
-      if (loading) loading.textContent = '🎬';
-    }
+      if (xhr.status !== 200) {
+        playBtn.style.display = 'flex';
+        return;
+      }
+      const videoUrl = URL.createObjectURL(xhr.response);
+      player.src = videoUrl;
+      player.classList.add('visible');
+      container.querySelector('.msg-video-close-btn').classList.add('visible');
+      container.querySelector('.msg-video-thumb').style.display = 'none';
+      player.play().catch(() => {});
+    };
+    xhr.onerror = () => {
+      progressBar.style.width = '0%';
+      playBtn.style.display = 'flex';
+    };
+    xhr.send();
   });
+  
+  // Video close function (called from onclick)
+  window.videoClose = function(closeBtn) {
+    const container = closeBtn.closest('.msg-video-container');
+    const player = container.querySelector('.msg-video-player');
+    const playBtn = container.querySelector('.msg-video-play-btn');
+    const thumb = container.querySelector('.msg-video-thumb');
+    
+    player.pause();
+    player.classList.remove('visible');
+    player.src = '';
+    playBtn.style.display = 'flex';
+    thumb.style.display = '';
+    closeBtn.classList.remove('visible');
+  };
+
+
 
   joinWS();
 }
@@ -2809,7 +2911,7 @@ function addMsg(name, text, type = '', image = null, timestamp = null, isHistory
       console.log('Video check:', { isVideoCombined, isVideoMedia, isVideoUrl, fileName, hasNewSep, hasOldSep });
       
       if (isVideoMedia && isVideoCombined) {
-        // Video message: thumbnail as image, click to play video
+        // Video message: blurred thumbnail + big play button
         const parts = hasNewSep ? image.split('::VIDEO::') : image.split('|VIDEO|');
         const thumbUrl = parts[0] || '';
         const videoUrl = parts[1] || '';
@@ -2820,23 +2922,28 @@ function addMsg(name, text, type = '', image = null, timestamp = null, isHistory
           isVideoCombined = false;
         } else {
           mediaHtml = `
-            <div class="msg-video-wrapper" style="position:relative;display:inline-block;margin-top:6px;max-width:280px;">
-              <img class="msg-image" src="${thumbUrl}" alt="Video thumbnail" style="border-radius:8px;cursor:pointer;max-width:100%;max-height:160px;" onclick="event.stopPropagation();const w=this.closest('.msg-video-wrapper');const v=w.querySelector('video');const c=w.querySelector('.video-close');v.play().catch(()=>{});v.style.display='block';v.previousElementSibling.style.display='none';if(c)c.style.display='flex';w.style.display='inline-block';">
-              <video class="msg-video" src="${videoUrl}" style="display:none;width:100%;max-height:300px;border-radius:8px;" controls playsinline preload="none" onclick="event.stopPropagation();this.pause();this.style.display='none';this.previousElementSibling.style.display='flex';this.nextElementSibling.style.display='none';"></video>
-              <div class="video-close" style="display:none;position:absolute;top:4px;right:4px;font-size:14px;color:#fff;background:rgba(0,0,0,0.5);width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:5;" onclick="event.stopPropagation();const v=this.parentElement.querySelector('video');v.pause();v.style.display='none';v.previousElementSibling.style.display='flex';this.style.display='none';">✕</div>
+            <div class="msg-video-container" data-video-src="${esc(videoUrl)}">
+              <img class="msg-video-thumb" src="${thumbUrl}" alt="Video thumbnail">
+              <div class="msg-video-play-btn">▶</div>
+              <div class="msg-video-progress-wrap"><div class="msg-video-progress-bar"></div></div>
+              <button class="msg-video-close-btn" onclick="event.stopPropagation();videoClose(this);">✕</button>
+              <video class="msg-video-player" controls playsinline preload="none" onclick="event.stopPropagation();"></video>
             </div>
           `;
         }
       }
 
       if (isVideoMedia && !isVideoCombined) {
+        // Video without thumbnail: blurred placeholder + play button, download on click
         mediaHtml = `
-          <div class="msg-video-wrapper" style="position:relative;display:inline-block;margin-top:6px;max-width:280px;">
-            <div class="msg-video-thumb-placeholder" data-video-src="${esc(image)}" data-filename="${esc(fileName || 'video')}" style="width:140px;height:80px;background:var(--surface-hover);border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:8px;">
-              <span class="thumb-loading" style="font-size:28px;">🎬</span>
-              <span style="font-size:11px;color:var(--text-muted);">${esc(fileName || 'video')}</span>
+          <div class="msg-video-container" data-video-src="${esc(image)}">
+            <div class="msg-video-thumb" style="width:140px;height:80px;background:linear-gradient(135deg,var(--surface-hover),var(--surface-active));display:flex;align-items:center;justify-content:center;">
+              <span style="font-size:28px;filter:blur(0);">🎬</span>
             </div>
-            <video class="msg-video" src="${image}" style="display:none;width:100%;max-height:300px;border-radius:8px;" controls playsinline preload="none" onclick="event.stopPropagation();this.pause();this.parentElement.style.display='none';this.previousElementSibling.style.display='flex';"></video>
+            <div class="msg-video-play-btn">▶</div>
+            <div class="msg-video-progress-wrap"><div class="msg-video-progress-bar"></div></div>
+            <button class="msg-video-close-btn" onclick="event.stopPropagation();videoClose(this);">✕</button>
+            <video class="msg-video-player" controls playsinline preload="none" onclick="event.stopPropagation();"></video>
           </div>
         `;
       } else if (isImageFile(fileName)) {
