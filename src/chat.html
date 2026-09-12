@@ -2732,16 +2732,17 @@ document.getElementById('name-input').addEventListener('input', () => {
   const container = document.getElementById('wheel-container');
   if (!container) return;
   
+  const itemHeight = 28;
+  const visibleCenter = 40; // center of the 80px container = 40px from top
+  
   function updateSelection() {
     const items = container.querySelectorAll('.wheel-item');
     const scrollTop = container.scrollTop;
-    const itemHeight = 40;
-    const offset = 20; // center offset
     
     items.forEach((item, i) => {
-      const itemTop = i * itemHeight;
-      const dist = Math.abs(scrollTop + offset - itemTop - itemHeight/2);
-      if (dist < itemHeight/2) {
+      const itemCenter = i * itemHeight + itemHeight / 2;
+      const dist = Math.abs(scrollTop + visibleCenter - itemCenter);
+      if (dist < itemHeight / 2) {
         item.classList.add('selected');
       } else {
         item.classList.remove('selected');
@@ -2754,10 +2755,12 @@ document.getElementById('name-input').addEventListener('input', () => {
   container.querySelectorAll('.wheel-item').forEach(item => {
     item.addEventListener('click', () => {
       const idx = Array.from(container.querySelectorAll('.wheel-item')).indexOf(item);
-      container.scrollTo({ top: idx * 28, behavior: 'smooth' });
+      container.scrollTo({ top: idx * itemHeight, behavior: 'smooth' });
     });
   });
   
+  // Initialize scroll position so first item (30分钟) is centered
+  container.scrollTop = 0;
   updateSelection();
 })();
 
