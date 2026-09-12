@@ -679,11 +679,6 @@ body {
   justify-content: center;
 }
 
-#image-viewer.pdf-mode #viewer-toolbar { display: flex; }
-#image-viewer.pdf-mode #viewer-hint { display: none; }
-#image-viewer.pdf-mode #viewer-img-wrap { background: transparent; }
-#image-viewer.pdf-mode iframe { display: block; width: 100%; height: 100%; border: none; }
-
 #image-viewer.active { display: flex; }
 
 .pdf-embed {
@@ -2648,20 +2643,15 @@ function openImageViewer(url) {
   viewerScrollRestore = chatMessages.scrollTop;
   viewer.classList.add('active');
   document.body.style.overflow = 'hidden';
-  viewer.classList.remove('pdf-mode');
   viewerImg.style.display = '';
   viewerImg.src = url;
 }
 
 function closeImageViewer() {
   viewer.classList.remove('active');
-  viewer.classList.remove('pdf-mode');
   viewerImg.src = '';
   viewerImg.style.display = '';
   document.body.style.overflow = '';
-  // Remove dynamically created iframe
-  const iframe = viewer.querySelector('#viewer-img-wrap iframe');
-  if (iframe) iframe.remove();
   // Restore scroll position after current event loop (prevents race with body.click)
   const savedScroll = viewerScrollRestore;
   viewerScrollRestore = null;
@@ -2737,13 +2727,6 @@ viewerWrap.addEventListener('touchmove', e => {
 }, { passive: false });
 viewerWrap.addEventListener('touchend', () => { lastTouchDist = null; });
 
-// Prevent scroll on viewer wrap (for PDF mode)
-viewerWrap.addEventListener('touchmove', e => {
-  if (viewer.classList.contains('pdf-mode')) {
-    e.preventDefault();
-  }
-}, { passive: false });
-
 // Image in message click to open viewer
 document.addEventListener('click', e => {
   try {
@@ -2757,26 +2740,18 @@ document.addEventListener('click', e => {
     }
     if (img && img.closest('.msg-video-wrapper')) return;
     
-    // Handle PDF click
+    // Handle PDF click - expand/collapse inline
     const pdfWrapper = e.target.closest('.msg-pdf-wrapper');
     if (pdfWrapper) {
       e.preventDefault();
       e.stopPropagation();
-      const url = pdfWrapper.dataset.pdfUrl;
-      if (!url) return;
-
-      viewerScrollRestore = chatMessages.scrollTop;
-      viewer.classList.add('active', 'pdf-mode');
-      viewerImg.style.display = 'none';
-
-      // Remove existing iframe and create new one
-      const existingIframe = viewer.querySelector('#viewer-img-wrap iframe');
-      if (existingIframe) existingIframe.remove();
-
-      const iframe = document.createElement('iframe');
-      iframe.className = 'pdf-embed';
-      iframe.src = url;
-      viewer.querySelector('#viewer-img-wrap').appendChild(iframe);
+      const pdfEmbed = pdfWrapper.querySelector('.msg-pdf-embed');
+      const toggle = pdfWrapper.querySelector('.pdf-toggle');
+      if (pdfEmbed) {
+        const isHidden = pdfEmbed.style.display === 'none';
+        pdfEmbed.style.display = isHidden ? 'block' : 'none';
+        if (toggle) toggle.textContent = isHidden ? '▴' : '▾';
+      }
       return;
     }
 
@@ -3492,17 +3467,18 @@ function addMsg(name, text, type = '', image = null, timestamp = null, isHistory
                onerror="this.classList.remove('loading'); this.classList.add('loaded')">
         `;
       } else if (isPDFFile(fileName)) {
-        // PDF - click to view in viewer overlay
-        console.log('Rendering PDF:', { fileName, image: image ? image.slice(0, 80) : null, isPDF: isPDFFile(fileName) });
+        // PDF - click to expand inline
         mediaHtml = `
-          <div class="msg-pdf-wrapper" data-pdf-url="${esc(image)}" style="cursor:pointer;display:inline-block;margin-top:6px;max-width:280px;">
-            <div style="background:var(--surface-hover);border-radius:8px;padding:16px;display:flex;align-items:center;gap:12px;border:1px solid var(--border);">
-              <span style="font-size:18px;">📕</span>
+          <div class="msg-pdf-wrapper" data-pdf-url="${esc(image)}" style="display:inline-block;margin-top:6px;max-width:100%;">
+            <div class="msg-pdf-preview" style="cursor:pointer;display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--surface-hover);border-radius:8px;border:1px solid var(--border);max-width:280px;">
+              <span style="font-size:16px;">📕</span>
               <div style="flex:1;min-width:0;">
-                <div style="font-size:13px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(fileName)}</div>
-                <div style="font-size:11px;color:var(--text-muted);">PDF</div>
+                <div style="font-size:12px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(fileName)}</div>
               </div>
-              <span style="font-size:18px;opacity:0.6;">👆</span>
+              <span class="pdf-toggle" style="font-size:12px;color:var(--text-muted);">▾</span>
+            </div>
+            <div class="msg-pdf-embed" style="display:none;margin-top:8px;border-radius:8px;overflow:hidden;border:1px solid var(--border);">
+              <iframe src="${esc(image)}" style="width:100%;height:500px;border:none;display:block;background:#fff;" loading="lazy"></iframe>
             </div>
           </div>
         `;
