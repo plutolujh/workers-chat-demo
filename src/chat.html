@@ -2628,9 +2628,10 @@ const viewerImg = document.getElementById('viewer-img');
 const viewerWrap = document.getElementById('viewer-img-wrap');
 
 function openImageViewer(url) {
-  console.log('openImageViewer called:', url ? url.slice(0, 80) : 'null');
-  console.log('viewer element:', viewer ? 'exists' : 'null');
-  console.log('viewerImg element:', viewerImg ? 'exists' : 'null');
+  if (!url || !viewer || !viewerImg) {
+    console.error('openImageViewer: missing params', { url, viewer: !!viewer, viewerImg: !!viewerImg });
+    return;
+  }
   currentViewerUrl = url;
   viewerScale = 1;
   viewerRotation = 0;
@@ -2639,7 +2640,7 @@ function openImageViewer(url) {
   viewerScrollRestore = chatMessages.scrollTop;
   viewer.classList.add('active');
   document.body.style.overflow = 'hidden';
-  viewerImg.src = '';
+  // Only set src once, without clearing first
   viewerImg.src = url;
 }
 
