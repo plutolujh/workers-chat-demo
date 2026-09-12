@@ -2561,7 +2561,10 @@ function startChat() {
     const fileName = placeholder.dataset.filename;
     
     // Show loading spinner
-    placeholder.querySelector('.thumb-loading').textContent = '⏳';
+    const loadingEl = placeholder.querySelector('.thumb-loading');
+    if (loadingEl) loadingEl.textContent = '⏳';
+    // If no .thumb-loading span, this is the generated wrapper - skip
+    if (!loadingEl) return;
     
     try {
       // Fetch video as blob
@@ -3094,7 +3097,11 @@ const chatObserver = new MutationObserver((mutations) => {
   for (const m of mutations) {
     for (const node of m.addedNodes) {
       if (node.nodeType !== 1) continue;
+      // Skip if this node is the generated thumbnail wrapper (has data-thumb-generated)
+      if (node.hasAttribute && node.hasAttribute('data-thumb-generated')) continue;
       const placeholder = node.querySelector ? node.querySelector('.msg-video-thumb-placeholder') : null;
+      // Also skip if the found placeholder is the generated wrapper
+      if (placeholder && placeholder.hasAttribute && placeholder.hasAttribute('data-thumb-generated')) continue;
       if (placeholder) generateVideoThumbForPlaceholder(placeholder);
     }
   }
@@ -3106,7 +3113,10 @@ async function generateVideoThumbForPlaceholder(placeholder) {
   const videoSrc = placeholder.dataset.videoSrc;
   if (!videoSrc) return;
   try {
-    placeholder.querySelector('.thumb-loading').textContent = '⏳';
+    const loadingEl = placeholder.querySelector('.thumb-loading');
+    if (loadingEl) loadingEl.textContent = '⏳';
+    // If no .thumb-loading span, this is the generated wrapper - skip
+    if (!loadingEl) return;
     const res = await fetch(videoSrc);
     if (!res.ok) throw new Error('fetch failed');
     const blob = await res.blob();
@@ -3116,6 +3126,7 @@ async function generateVideoThumbForPlaceholder(placeholder) {
     const wrapper = document.createElement('div');
     wrapper.className = 'msg-video-thumb-placeholder';
     wrapper.dataset.videoSrc = videoSrc;
+    wrapper.dataset.thumbGenerated = 'true'; // marker to skip in MutationObserver
     wrapper.style.cssText = 'width:140px;height:80px;position:relative;cursor:pointer;';
     const img = document.createElement('img');
     img.src = thumbUrl;
