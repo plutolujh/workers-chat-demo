@@ -2554,6 +2554,11 @@ function startChat() {
   // Generate video thumbnail on first click for videos without thumbnail
   chatMessages.addEventListener('click', async e => {
     const placeholder = e.target.closest('.msg-video-thumb-placeholder');
+    const target = e.target;
+    const targetClass = target.className || '';
+    const targetTag = target.tagName || '';
+    const targetParent = target.parentElement ? target.parentElement.className : '';
+    console.log('[chat click]', { tag: targetTag, class: targetClass, parentClass: targetParent, hasPlaceholder: !!placeholder, placeholderClass: placeholder ? placeholder.className : '' });
     if (!placeholder) return;
     e.stopPropagation();
     
