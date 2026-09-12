@@ -1940,6 +1940,7 @@ button:focus-visible {
   </div>
   <div id="viewer-img-wrap">
     <img id="viewer-img" src="" alt="">
+    <iframe id="viewer-iframe" class="pdf-embed" style="display:none;" src=""></iframe>
     <div id="viewer-hint">Pinch or scroll to zoom · Drag to move</div>
   </div>
 </div>
@@ -2626,14 +2627,15 @@ let currentViewerUrl = null;
 const viewer = document.getElementById('image-viewer');
 const viewerImg = document.getElementById('viewer-img');
 const viewerWrap = document.getElementById('viewer-img-wrap');
+const viewerIframe = document.getElementById('viewer-iframe');
 
-function openImageViewer(url) {
+function openImageViewer(url, isPdf = false) {
   if (!url) return;
   // Prevent multiple calls
   if (openImageViewer.locked) return;
   openImageViewer.locked = true;
   setTimeout(() => { openImageViewer.locked = false; }, 500);
-  
+
   currentViewerUrl = url;
   viewerScale = 1;
   viewerRotation = 0;
@@ -2642,12 +2644,28 @@ function openImageViewer(url) {
   viewerScrollRestore = chatMessages.scrollTop;
   viewer.classList.add('active');
   document.body.style.overflow = 'hidden';
-  viewerImg.src = url;
+
+  if (isPdf) {
+    viewer.classList.add('pdf-mode');
+    viewerImg.style.display = 'none';
+    viewerIframe.style.display = 'block';
+    viewerIframe.src = url;
+  } else {
+    viewer.classList.remove('pdf-mode');
+    viewerImg.style.display = '';
+    viewerIframe.style.display = 'none';
+    viewerIframe.src = '';
+    viewerImg.src = url;
+  }
 }
 
 function closeImageViewer() {
   viewer.classList.remove('active');
+  viewer.classList.remove('pdf-mode');
   viewerImg.src = '';
+  viewerImg.style.display = '';
+  viewerIframe.style.display = 'none';
+  viewerIframe.src = '';
   document.body.style.overflow = '';
   // Restore scroll position after current event loop (prevents race with body.click)
   const savedScroll = viewerScrollRestore;
@@ -2737,14 +2755,14 @@ document.addEventListener('click', e => {
     }
     if (img && img.closest('.msg-video-wrapper')) return;
     
-    // Handle PDF click - open in new tab since shotsync needs auth
+    // Handle PDF click - open in viewer
     const pdfWrapper = e.target.closest('.msg-pdf-wrapper');
     if (pdfWrapper) {
       e.preventDefault();
       e.stopPropagation();
       const url = pdfWrapper.dataset.pdfUrl;
       if (!url) return;
-      window.open(url, '_blank');
+      openImageViewer(url, true);
       return;
     }
     
