@@ -2628,7 +2628,6 @@ const viewerImg = document.getElementById('viewer-img');
 const viewerWrap = document.getElementById('viewer-img-wrap');
 
 function openImageViewer(url) {
-  console.log('openImageViewer:', url ? url.slice(0, 100) : null);
   currentViewerUrl = url;
   viewerScale = 1;
   viewerRotation = 0;
@@ -2722,13 +2721,11 @@ viewerWrap.addEventListener('touchend', () => { lastTouchDist = null; });
 
 // Image in message click to open viewer
 document.addEventListener('click', e => {
-  console.log('Click target:', e.target.tagName, e.target.className, e.target.closest('.msg-pdf-wrapper') ? 'has-pdf-wrapper' : 'no-pdf');
   const img = e.target.closest('.msg-image');
   // Skip if this is a file wrapper (PDF/Office) or video wrapper
   if (!img) {
     // Check if it's a PDF or Office wrapper (handled above), otherwise skip
     if (!e.target.closest('.msg-pdf-wrapper') && !e.target.closest('.msg-office-wrapper')) {
-      console.log('Skipping - not PDF/Office/image');
       return;
     }
   }
@@ -2760,10 +2757,8 @@ document.addEventListener('click', e => {
     return;
   }
   const url = img.dataset.full || img.dataset.src || img.src;
-  console.log('Image click:', { url: url ? url.slice(0, 100) : null, dataFull: img.dataset.full, dataSrc: img.dataset.src, src: img.src.slice(0, 100) });
   if (url && url.startsWith('http')) {
     e.preventDefault();
-    console.log('Opening image viewer with URL:', url.slice(0, 80));
     openImageViewer(url);
   } else {
     console.log('URL does not start with http, skipping. URL:', url);
