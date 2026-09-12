@@ -1139,10 +1139,10 @@ body {
 /* ===== iOS WHEEL PICKER ===== */
 .wheel-picker {
   position: relative;
-  height: 120px;
+  height: 80px;
   overflow: hidden;
   background: var(--surface);
-  border-radius: 10px;
+  border-radius: 8px;
   border: 1px solid var(--border);
   flex-shrink: 0;
 }
@@ -1159,26 +1159,31 @@ body {
 }
 
 .wheel-slot {
-  padding: 20px 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
 }
 
 .wheel-item {
-  height: 40px;
-  line-height: 40px;
+  height: 28px;
+  line-height: 28px;
   text-align: center;
-  font-size: 18px;
+  font-size: 13px;
   font-weight: 500;
   color: var(--text-dim);
   cursor: pointer;
   transition: all 0.15s ease;
   opacity: 0.5;
+  padding: 0 12px;
 }
 
 .wheel-item.selected {
   color: var(--text);
   font-weight: 600;
   opacity: 1;
-  transform: scale(1.05);
+  transform: scale(1.1);
 }
 
 .wheel-hint {
@@ -1186,8 +1191,8 @@ body {
   top: 50%;
   left: 4px;
   right: 4px;
-  height: 40px;
-  margin-top: -20px;
+  height: 28px;
+  margin-top: -14px;
   border-top: 1px solid var(--accent);
   border-bottom: 1px solid var(--accent);
   pointer-events: none;
@@ -2749,7 +2754,7 @@ document.getElementById('name-input').addEventListener('input', () => {
   container.querySelectorAll('.wheel-item').forEach(item => {
     item.addEventListener('click', () => {
       const idx = Array.from(container.querySelectorAll('.wheel-item')).indexOf(item);
-      container.scrollTo({ top: idx * 40, behavior: 'smooth' });
+      container.scrollTo({ top: idx * 28, behavior: 'smooth' });
     });
   });
   
