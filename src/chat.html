@@ -2548,12 +2548,8 @@ function startChat() {
     isAtBottom = chatMessages.scrollTop + chatMessages.clientHeight >= chatMessages.scrollHeight - 10;
   });
 
-  document.body.addEventListener('click', e => {
-    if (viewer.classList.contains('active') || viewerJustClosed) return;
-    if (window.getSelection().toString() === '' && e.target !== chatInput && !e.target.closest('.msg-video-wrapper') && !e.target.closest('#image-viewer')) {
-      chatInput.focus();
-    }
-  });
+  // Removed: auto-focus on body click was disruptive
+  // Focus is now only set when user explicitly taps/clicks the input area
 
   // Generate video thumbnail on first click for videos without thumbnail
   chatMessages.addEventListener('click', async e => {
