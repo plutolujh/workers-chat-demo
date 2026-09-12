@@ -3138,11 +3138,13 @@ async function generateVideoThumbForPlaceholder(placeholder) {
     wrapper.appendChild(playIcon);
     wrapper.onclick = (ev) => {
       ev.stopPropagation();
+      console.log('[video click] wrapper onclick', { videoSrc: wrapper.dataset.videoSrc });
       const videoWrapper = wrapper.closest('.msg-video-wrapper');
       const video = videoWrapper ? videoWrapper.querySelector('video') : null;
+      console.log('[video click]', { videoWrapper: !!videoWrapper, video: !!video, videoSrc: video ? video.src : null });
       if (video) {
         video.style.display = 'block';
-        video.play().catch(() => {});
+        video.play().catch(e => console.warn('[video play error]', e));
         wrapper.style.display = 'none';
         // When video pauses or ends, show thumbnail again
         const onPauseOrEnd = () => {
