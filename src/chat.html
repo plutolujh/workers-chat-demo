@@ -1092,8 +1092,8 @@ body {
   align-items: center;
   justify-content: center;
   gap: 12px;
-  margin: 12px 0;
-  padding: 8px 12px;
+  margin: 10px 0;
+  padding: 10px 12px;
   background: var(--surface-hover);
   border-radius: 8px;
   border: 1px solid var(--border);
@@ -1159,11 +1159,12 @@ body {
 }
 
 .wheel-slot {
-  padding: 0;
+  padding: 26px 0;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
+  box-sizing: border-box;
 }
 
 .wheel-item {
@@ -2738,9 +2739,12 @@ document.getElementById('name-input').addEventListener('input', () => {
   function updateSelection() {
     const items = container.querySelectorAll('.wheel-item');
     const scrollTop = container.scrollTop;
+    const slotPadding = 26;
     
     items.forEach((item, i) => {
-      const itemCenter = i * itemHeight + itemHeight / 2;
+      // Item top relative to slot content = slotPadding + i * itemHeight
+      // Item center = slotPadding + i * itemHeight + itemHeight/2
+      const itemCenter = slotPadding + i * itemHeight + itemHeight / 2;
       const dist = Math.abs(scrollTop + visibleCenter - itemCenter);
       if (dist < itemHeight / 2) {
         item.classList.add('selected');
@@ -2755,7 +2759,12 @@ document.getElementById('name-input').addEventListener('input', () => {
   container.querySelectorAll('.wheel-item').forEach(item => {
     item.addEventListener('click', () => {
       const idx = Array.from(container.querySelectorAll('.wheel-item')).indexOf(item);
-      container.scrollTo({ top: idx * itemHeight, behavior: 'smooth' });
+      // Scroll to center item at hint position (hint is at 40px in 80px container)
+      // Item center = slotPadding + idx * itemHeight + itemHeight/2
+      // We want item center = 40, so: paddingTop + idx * 28 + 14 = 40
+      // paddingTop = 26, so: 26 + idx * 28 + 14 = 40 + idx * 28
+      // scrollTop = idx * itemHeight
+      container.scrollTo({ top: idx * itemHeight, behavior: 'instant' });
     });
   });
   
