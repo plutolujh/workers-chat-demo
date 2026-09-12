@@ -679,8 +679,8 @@ body {
   justify-content: center;
 }
 
-#image-viewer.pdf-mode #viewer-toolbar { display: none !important; }
-#image-viewer.pdf-mode #viewer-hint { display: none !important; }
+#image-viewer.pdf-mode #viewer-toolbar { display: flex; }
+#image-viewer.pdf-mode #viewer-hint { display: none; }
 #image-viewer.pdf-mode #viewer-img-wrap { background: transparent; }
 #image-viewer.pdf-mode iframe { display: block; width: 100%; height: 100%; border: none; }
 
@@ -702,12 +702,16 @@ body {
 
 #image-viewer.active { display: flex; }
 #viewer-toolbar {
+  position: absolute;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
   display: flex;
   gap: 8px;
   padding: 10px 16px;
-  background: rgba(255,255,255,0.08);
+  background: rgba(0,0,0,0.6);
   border-radius: 24px;
-  margin-bottom: 12px;
+  z-index: 10;
   flex-shrink: 0;
 }
 #viewer-toolbar button {
@@ -2732,6 +2736,13 @@ viewerWrap.addEventListener('touchmove', e => {
   }
 }, { passive: false });
 viewerWrap.addEventListener('touchend', () => { lastTouchDist = null; });
+
+// Prevent scroll on viewer wrap (for PDF mode)
+viewerWrap.addEventListener('touchmove', e => {
+  if (viewer.classList.contains('pdf-mode')) {
+    e.preventDefault();
+  }
+}, { passive: false });
 
 // Image in message click to open viewer
 document.addEventListener('click', e => {
