@@ -682,14 +682,11 @@ body {
 #image-viewer.pdf-mode #viewer-toolbar { display: none !important; }
 #image-viewer.pdf-mode #viewer-hint { display: none !important; }
 #image-viewer.pdf-mode #viewer-img-wrap {
-  background: #1a1d27;
-  border-radius: 12px;
-  width: 75vw;
-  max-width: 900px;
-  height: 85vh;
-  box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+  background: transparent;
+  width: 100%;
+  height: 100%;
 }
-#image-viewer.pdf-mode iframe { display: block; width: 100%; height: 100%; border: none; border-radius: 12px; }
+#image-viewer.pdf-mode iframe { display: block; width: 100%; height: 100%; border: none; }
 
 .pdf-embed {
   width: 100%;
@@ -2762,8 +2759,49 @@ document.addEventListener('click', e => {
     }
     if (img && img.closest('.msg-video-wrapper')) return;
     
-    // Handle PDF click - handled inline by expand/collapse in addMsg
-    // (no need for global handler since PDF preview is now inline)
+    // Handle PDF click - use XHR to bypass CORS/iframe restrictions
+    const pdfWrapper = e.target.closest('.msg-pdf-wrapper');
+    if (pdfWrapper) {
+      e.preventDefault();
+      e.stopPropagation();
+      const url = pdfWrapper.dataset.pdfUrl;
+      if (!url) return;
+
+      viewerScrollRestore = chatMessages.scrollTop;
+      viewer.classList.add('active', 'pdf-mode');
+      viewerImg.style.display = 'none';
+
+      // Show loading state
+      const existingIframe = viewer.querySelector('iframe');
+      if (existingIframe) existingIframe.remove();
+
+      const iframe = document.createElement('iframe');
+      iframe.className = 'pdf-embed';
+      iframe.style.background = '#333';
+      iframe.textContent = 'Loading PDF...';
+      viewer.querySelector('#viewer-img-wrap').appendChild(iframe);
+
+      // Use XHR to fetch PDF (includes cookies for auth)
+      const xhr = new XMLHttpRequest();
+      xhr.open('GET', url, true);
+      xhr.responseType = 'blob';
+      xhr.onload = function() {
+        if (xhr.status === 200) {
+          const blobUrl = URL.createObjectURL(xhr.response);
+          iframe.src = blobUrl;
+          iframe.onload = function() {
+            iframe.style.background = '';
+          };
+        } else {
+          iframe.srcdoc = '<html><body style="color:white;padding:20px;">Failed to load PDF (status: ' + xhr.status + ')</body></html>';
+        }
+      };
+      xhr.onerror = function() {
+        iframe.srcdoc = '<html><body style="color:white;padding:20px;">Network error loading PDF</body></html>';
+      };
+      xhr.send();
+      return;
+    }
 
     // Handle Office files - open in new tab
     const officeWrapper = e.target.closest('.msg-office-wrapper');
@@ -3477,24 +3515,17 @@ function addMsg(name, text, type = '', image = null, timestamp = null, isHistory
                onerror="this.classList.remove('loading'); this.classList.add('loaded')">
         `;
       } else if (isPDFFile(fileName)) {
-        // PDF - click to expand inline
+        // PDF - click to view in viewer overlay
         console.log('Rendering PDF:', { fileName, image: image ? image.slice(0, 80) : null, isPDF: isPDFFile(fileName) });
         mediaHtml = `
           <div class="msg-pdf-wrapper" data-pdf-url="${esc(image)}" style="cursor:pointer;display:inline-block;margin-top:6px;max-width:280px;">
-            <div class="msg-pdf-preview" style="background:var(--surface-hover);border-radius:8px;padding:16px;display:flex;align-items:center;gap:12px;border:1px solid var(--border);">
+            <div style="background:var(--surface-hover);border-radius:8px;padding:16px;display:flex;align-items:center;gap:12px;border:1px solid var(--border);">
               <span style="font-size:18px;">📕</span>
               <div style="flex:1;min-width:0;">
                 <div style="font-size:13px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(fileName)}</div>
                 <div style="font-size:11px;color:var(--text-muted);">PDF</div>
               </div>
               <span style="font-size:18px;opacity:0.6;">👆</span>
-            </div>
-            <div class="msg-pdf-embed" style="display:none;margin-top:8px;border-radius:8px;overflow:hidden;border:1px solid var(--border);">
-              <div style="background:var(--surface-hover);padding:8px 12px;display:flex;justify-content:space-between;align-items:center;">
-                <span style="font-size:12px;color:var(--text-muted);">${esc(fileName)}</span>
-                <button class="msg-pdf-close" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:16px;padding:0;">✕</button>
-              </div>
-              <iframe src="${esc(image)}" style="width:100%;height:500px;border:none;display:block;" loading="lazy"></iframe>
             </div>
           </div>
         `;
@@ -3531,27 +3562,6 @@ function addMsg(name, text, type = '', image = null, timestamp = null, isHistory
             selectedMsgId = timestamp;
             recallSelectedMsg();
           }
-        };
-      }
-    }
-
-    // Add click handler for PDF preview expand/collapse
-    const pdfWrapper = div.querySelector('.msg-pdf-wrapper');
-    if (pdfWrapper) {
-      const pdfPreview = pdfWrapper.querySelector('.msg-pdf-preview');
-      const pdfEmbed = pdfWrapper.querySelector('.msg-pdf-embed');
-      const pdfClose = pdfWrapper.querySelector('.msg-pdf-close');
-
-      if (pdfPreview && pdfEmbed) {
-        pdfPreview.onclick = (e) => {
-          e.stopPropagation();
-          pdfEmbed.style.display = pdfEmbed.style.display === 'none' ? 'block' : 'none';
-        };
-      }
-      if (pdfClose) {
-        pdfClose.onclick = (e) => {
-          e.stopPropagation();
-          if (pdfEmbed) pdfEmbed.style.display = 'none';
         };
       }
     }
