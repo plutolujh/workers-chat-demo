@@ -2628,20 +2628,7 @@ const viewerImg = document.getElementById('viewer-img');
 const viewerWrap = document.getElementById('viewer-img-wrap');
 
 function openImageViewer(url) {
-  // Prevent re-entry
-  if (openImageViewer.inProgress) return;
-  openImageViewer.inProgress = true;
-  
-  if (!url) {
-    openImageViewer.inProgress = false;
-    return;
-  }
-  
-  // Skip if same URL already loaded
-  if (currentViewerUrl === url && viewer.classList.contains('active')) {
-    openImageViewer.inProgress = false;
-    return;
-  }
+  if (!url) return;
   
   try {
     currentViewerUrl = url;
@@ -2653,28 +2640,25 @@ function openImageViewer(url) {
     viewer.classList.add('active');
     document.body.style.overflow = 'hidden';
     
-    // Load image with timeout
-    const img = new Image();
-    img.onload = () => {
-      viewerImg.src = url;
-      openImageViewer.inProgress = false;
-    };
-    img.onerror = () => {
-      console.error('Failed to load image');
-      openImageViewer.inProgress = false;
-    };
-    img.src = url;
-    
-    // Fallback timeout in case onload never fires
-    setTimeout(() => {
-      if (openImageViewer.inProgress) {
-        viewerImg.src = url;
-        openImageViewer.inProgress = false;
+    // Use XHR to fetch image (includes auth cookies) then display as blob
+    const xhr = new XMLHttpRequest();
+    xhr.open('GET', url, true);
+    xhr.responseType = 'blob';
+    xhr.onload = function() {
+      if (xhr.status === 200) {
+        const blobUrl = URL.createObjectURL(xhr.response);
+        viewerImg.src = blobUrl;
+        viewerImg.onload = () => URL.revokeObjectURL(blobUrl);
+      } else {
+        console.error('Image load failed:', xhr.status);
       }
-    }, 5000);
+    };
+    xhr.onerror = function() {
+      console.error('Image network error');
+    };
+    xhr.send();
   } catch (err) {
     console.error('openImageViewer error:', err);
-    openImageViewer.inProgress = false;
   }
 }
 
