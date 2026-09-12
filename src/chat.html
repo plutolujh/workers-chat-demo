@@ -1139,7 +1139,7 @@ body {
 /* ===== iOS WHEEL PICKER ===== */
 .wheel-picker {
   position: relative;
-  height: 80px;
+  height: 46px;
   overflow: hidden;
   background: var(--surface);
   border-radius: 8px;
@@ -1159,7 +1159,7 @@ body {
 }
 
 .wheel-slot {
-  padding: 26px 0;
+  padding: 9px 0;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1184,7 +1184,6 @@ body {
   color: var(--text);
   font-weight: 600;
   opacity: 1;
-  transform: scale(1.1);
 }
 
 .wheel-hint {
@@ -2741,7 +2740,7 @@ document.getElementById('name-input').addEventListener('input', () => {
   if (!container) return;
   
   const itemHeight = 28;
-  const visibleCenter = 40; // center of the 80px container = 40px from top
+  const visibleCenter = 23; // center of the 46px container = 23px from top
   
   function updateSelection() {
     const items = container.querySelectorAll('.wheel-item');
