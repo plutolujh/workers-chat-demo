@@ -2204,8 +2204,8 @@ cancelImgBtn.addEventListener('click', () => {
 
 // ===== IMAGE VIEWER =====
 let viewerScale = 1, viewerRotation = 0;
-let viewerCloseJustFired = false;
 let viewerScrollRestore = null;
+let viewerJustClosed = false;
 let viewerDragStart = null, viewerOffset = { x: 0, y: 0 };
 let currentViewerUrl = null;
 const viewer = document.getElementById('image-viewer');
@@ -2230,14 +2230,16 @@ function closeImageViewer() {
   viewer.classList.remove('active');
   viewerImg.src = '';
   document.body.style.overflow = '';
-  // Restore scroll position and prevent input focus
-  if (viewerScrollRestore) {
-    chatMessages.scrollTop = viewerScrollRestore;
-    viewerScrollRestore = null;
+  // Restore scroll position after current event loop (prevents race with body.click)
+  const savedScroll = viewerScrollRestore;
+  viewerScrollRestore = null;
+  viewerJustClosed = true;
+  if (savedScroll !== null) {
+    setTimeout(() => {
+      chatMessages.scrollTop = savedScroll;
+    }, 0);
   }
-  // Prevent body click from focusing input after close
-  viewerCloseJustFired = true;
-  setTimeout(() => { viewerCloseJustFired = false; }, 50);
+  setTimeout(() => { viewerJustClosed = false; }, 100);
 }
 
 function applyViewerTransform() {
@@ -2547,7 +2549,7 @@ function startChat() {
   });
 
   document.body.addEventListener('click', e => {
-    if (viewerCloseJustFired) return;
+    if (viewer.classList.contains('active') || viewerJustClosed) return;
     if (window.getSelection().toString() === '' && e.target !== chatInput && !e.target.closest('.msg-video-wrapper') && !e.target.closest('#image-viewer')) {
       chatInput.focus();
     }
