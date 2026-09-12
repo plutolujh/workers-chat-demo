@@ -2775,34 +2775,10 @@ document.addEventListener('click', e => {
       viewerScrollRestore = chatMessages.scrollTop;
       viewer.classList.add('active', 'pdf-mode');
       viewerImg.style.display = 'none';
-      viewerIframe.style.display = 'none'; // Hide initially
 
-      // Use srcdoc for loading state first
-      viewerIframe.srcdoc = '<html><body style="color:#ccc;padding:40px;text-align:center;font-family:sans-serif;">Loading PDF...</body></html>';
-
-      // Use XHR to fetch PDF (includes cookies for auth)
-      const xhr = new XMLHttpRequest();
-      xhr.open('GET', url, true);
-      xhr.responseType = 'blob';
-      xhr.onload = function() {
-        console.log('PDF XHR load:', xhr.status, xhr.response);
-        if (xhr.status === 200) {
-          const blobUrl = URL.createObjectURL(xhr.response);
-          console.log('PDF blob URL:', blobUrl);
-          // First show iframe, then set src
-          viewerIframe.style.display = 'block';
-          viewerIframe.src = blobUrl;
-        } else {
-          viewerIframe.srcdoc = '<html><body style="color:#ccc;padding:40px;text-align:center;font-family:sans-serif;">Failed to load PDF (status: ' + xhr.status + ')</body></html>';
-          viewerIframe.style.display = 'block';
-        }
-      };
-      xhr.onerror = function() {
-        console.log('PDF XHR error');
-        viewerIframe.srcdoc = '<html><body style="color:#ccc;padding:40px;text-align:center;font-family:sans-serif;">Network error loading PDF</body></html>';
-        viewerIframe.style.display = 'block';
-      };
-      xhr.send();
+      // Try direct URL first (some CDNs support iframe embedding)
+      viewerIframe.style.display = 'block';
+      viewerIframe.src = url;
       return;
     }
 
