@@ -3102,24 +3102,41 @@ async function generateVideoThumbForPlaceholder(placeholder) {
     const blob = await res.blob();
     const thumbBlob = await generateVideoThumbnail(blob);
     const thumbUrl = URL.createObjectURL(thumbBlob);
+    // Wrap in a div that acts like the placeholder for click-to-play
+    const wrapper = document.createElement('div');
+    wrapper.className = 'msg-video-thumb-placeholder';
+    wrapper.dataset.videoSrc = videoSrc;
+    wrapper.style.cssText = 'width:140px;height:80px;position:relative;cursor:pointer;';
     const img = document.createElement('img');
     img.src = thumbUrl;
-    img.style.cssText = 'width:140px;height:80px;object-fit:cover;border-radius:8px;cursor:pointer;';
-    img.onclick = (ev) => {
+    img.style.cssText = 'width:140px;height:80px;object-fit:cover;border-radius:8px;display:block;';
+    const playIcon = document.createElement('div');
+    playIcon.textContent = '▶';
+    playIcon.style.cssText = 'position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:28px;color:#fff;text-shadow:0 1px 4px rgba(0,0,0,0.8);pointer-events:none;';
+    wrapper.appendChild(img);
+    wrapper.appendChild(playIcon);
+    wrapper.onclick = (ev) => {
       ev.stopPropagation();
-      const wrapper = placeholder.closest('.msg-video-wrapper');
-      const video = wrapper.querySelector('video');
-      if (video.paused) {
+      const videoWrapper = wrapper.closest('.msg-video-wrapper');
+      const video = videoWrapper ? videoWrapper.querySelector('video') : null;
+      if (video) {
         video.style.display = 'block';
-        placeholder.style.display = 'none';
         video.play().catch(() => {});
-      } else {
-        video.pause();
-        video.style.display = 'none';
-        placeholder.style.display = 'flex';
+        wrapper.style.display = 'none';
+        // When video pauses or ends, show thumbnail again
+        const onPauseOrEnd = () => {
+          if (videoWrapper) {
+            video.style.display = 'none';
+            wrapper.style.display = '';
+          }
+          video.removeEventListener('pause', onPauseOrEnd);
+          video.removeEventListener('ended', onPauseOrEnd);
+        };
+        video.addEventListener('pause', onPauseOrEnd);
+        video.addEventListener('ended', onPauseOrEnd);
       }
     };
-    placeholder.replaceWith(img);
+    placeholder.replaceWith(wrapper);
   } catch (err) {
     console.warn('Auto video thumb failed:', err);
     const loading = placeholder.querySelector('.thumb-loading');
