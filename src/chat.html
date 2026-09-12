@@ -3127,10 +3127,10 @@ async function generateVideoThumbForPlaceholder(placeholder) {
     wrapper.className = 'msg-video-thumb-placeholder';
     wrapper.dataset.videoSrc = videoSrc;
     wrapper.dataset.thumbGenerated = 'true'; // marker to skip in MutationObserver
-    wrapper.style.cssText = 'width:140px;height:80px;position:relative;cursor:pointer;';
+    wrapper.style.cssText = 'width:140px;height:80px;position:relative;cursor:pointer;user-select:none;';
     const img = document.createElement('img');
     img.src = thumbUrl;
-    img.style.cssText = 'width:140px;height:80px;object-fit:cover;border-radius:8px;display:block;';
+    img.style.cssText = 'width:140px;height:80px;object-fit:cover;border-radius:8px;display:block;pointer-events:none;';
     const playIcon = document.createElement('div');
     playIcon.textContent = '▶';
     playIcon.style.cssText = 'position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:28px;color:#fff;text-shadow:0 1px 4px rgba(0,0,0,0.8);pointer-events:none;';
@@ -3162,6 +3162,12 @@ async function generateVideoThumbForPlaceholder(placeholder) {
     console.warn('Auto video thumb failed:', err);
     const loading = placeholder.querySelector('.thumb-loading');
     if (loading) loading.textContent = '🎬';
+    // Show user-friendly error
+    const toast = document.createElement('div');
+    toast.textContent = '视频加载失败';
+    toast.style = 'position:fixed;bottom:60px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.8);color:#fff;padding:8px 16px;border-radius:20px;font-size:13px;z-index:9999;';
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 3000);
   }
 }
 
