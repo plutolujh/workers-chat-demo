@@ -1579,6 +1579,8 @@ button:focus-visible {
     </div>
     <span id="version-badge" class="version-badge">v:AUTO</span>
   </div>
+</header>
+
 <!-- IMAGE VIEWER -->
 <div id="image-viewer">
   <button id="viewer-close" title="Close">✕</button>
@@ -1594,7 +1596,6 @@ button:focus-visible {
     <div id="viewer-hint">Pinch or scroll to zoom · Drag to move</div>
   </div>
 </div>
-</header>
 
 <!-- MOBILE USERS SIDEBAR -->
 <div id="users-sidebar" class="users-sidebar">
@@ -2210,14 +2211,16 @@ const viewerImg = document.getElementById('viewer-img');
 const viewerWrap = document.getElementById('viewer-img-wrap');
 
 function openImageViewer(url) {
+  console.log('openImageViewer:', url ? url.slice(0, 100) : null);
   currentViewerUrl = url;
   viewerScale = 1;
   viewerRotation = 0;
   viewerOffset = { x: 0, y: 0 };
-  viewerImg.src = url;
   viewerImg.style.transform = '';
   viewer.classList.add('active');
   document.body.style.overflow = 'hidden';
+  viewerImg.src = '';
+  viewerImg.src = url;
 }
 
 function closeImageViewer() {
@@ -2293,8 +2296,9 @@ viewerWrap.addEventListener('touchend', () => { lastTouchDist = null; });
 document.addEventListener('click', e => {
   const img = e.target.closest('.msg-image');
   if (!img) return;
-  const url = img.dataset.full || img.src;
-  if (url) {
+  const url = img.dataset.full || img.dataset.src || img.src;
+  console.log('Image click:', { url: url ? url.slice(0, 100) : null, dataFull: img.dataset.full, dataSrc: img.dataset.src, src: img.src.slice(0, 100) });
+  if (url && url.startsWith('http')) {
     e.preventDefault();
     openImageViewer(url);
   }
