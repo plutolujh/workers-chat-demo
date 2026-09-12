@@ -2769,6 +2769,7 @@ document.addEventListener('click', e => {
       e.preventDefault();
       e.stopPropagation();
       const url = pdfWrapper.dataset.pdfUrl;
+      console.log('PDF click:', url);
       if (!url) return;
 
       viewerScrollRestore = chatMessages.scrollTop;
@@ -2785,14 +2786,17 @@ document.addEventListener('click', e => {
       xhr.open('GET', url, true);
       xhr.responseType = 'blob';
       xhr.onload = function() {
+        console.log('PDF XHR load:', xhr.status, xhr.response);
         if (xhr.status === 200) {
           const blobUrl = URL.createObjectURL(xhr.response);
+          console.log('PDF blob URL:', blobUrl);
           iframe.src = blobUrl;
         } else {
           iframe.srcdoc = '<html><body style="color:#ccc;padding:40px;text-align:center;font-family:sans-serif;">Failed to load PDF (status: ' + xhr.status + ')</body></html>';
         }
       };
       xhr.onerror = function() {
+        console.log('PDF XHR error');
         iframe.srcdoc = '<html><body style="color:#ccc;padding:40px;text-align:center;font-family:sans-serif;">Network error loading PDF</body></html>';
       };
       xhr.send();
