@@ -2678,7 +2678,7 @@ function applyViewerTransform() {
   viewerImg.style.transform = `translate(${viewerOffset.x}px,${viewerOffset.y}px) rotate(${viewerRotation}deg) scale(${viewerScale})`;
 }
 
-document.getElementById('viewer-close').onclick = closeImageViewer;
+document.getElementById('viewer-close').onclick = e => { e.stopPropagation(); closeImageViewer(); };
 viewer.onclick = e => { if (e.target === viewer || e.target === viewerWrap) closeImageViewer(); };
 
 document.getElementById('viewer-zoom-in').onclick = () => {
