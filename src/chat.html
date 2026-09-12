@@ -811,10 +811,13 @@ body {
   color: var(--text);
   font-size: 15px;
   font-family: inherit;
-  padding: 12px 0;
+  padding: 10px 0;
   outline: none;
   min-height: 44px;
-  resize: none;
+  max-height: 150px;
+  resize: vertical;
+  overflow-y: auto;
+  line-height: 1.4;
 }
 
 #chat-input::placeholder {
@@ -1939,7 +1942,7 @@ button:focus-visible {
       <div class="input-row">
         <button id="order-toggle" class="order-toggle" title="Toggle message order">↓</button>
         <span class="input-prompt">›</span>
-        <input type="text" id="chat-input" placeholder="Type a message..." maxlength="256" autocomplete="off">
+        <textarea id="chat-input" placeholder="Type a message..." maxlength="2000" autocomplete="off" rows="1"></textarea>
         <input type="file" id="image-input" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,.html,.css,.js,.json,.xml,.zip,video/*" style="display:none">
         <button id="image-btn" class="image-btn" type="button">🖼️</button>
         <button id="emoji-btn" class="emoji-btn" type="button">😊</button>
