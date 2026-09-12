@@ -2629,37 +2629,16 @@ const viewerWrap = document.getElementById('viewer-img-wrap');
 
 function openImageViewer(url) {
   if (!url) return;
-  
-  try {
-    currentViewerUrl = url;
-    viewerScale = 1;
-    viewerRotation = 0;
-    viewerOffset = { x: 0, y: 0 };
-    viewerImg.style.transform = '';
-    viewerScrollRestore = chatMessages.scrollTop;
-    viewer.classList.add('active');
-    document.body.style.overflow = 'hidden';
-    
-    // Use XHR to fetch image (includes auth cookies) then display as blob
-    const xhr = new XMLHttpRequest();
-    xhr.open('GET', url, true);
-    xhr.responseType = 'blob';
-    xhr.onload = function() {
-      if (xhr.status === 200) {
-        const blobUrl = URL.createObjectURL(xhr.response);
-        viewerImg.src = blobUrl;
-        viewerImg.onload = () => URL.revokeObjectURL(blobUrl);
-      } else {
-        console.error('Image load failed:', xhr.status);
-      }
-    };
-    xhr.onerror = function() {
-      console.error('Image network error');
-    };
-    xhr.send();
-  } catch (err) {
-    console.error('openImageViewer error:', err);
-  }
+  currentViewerUrl = url;
+  viewerScale = 1;
+  viewerRotation = 0;
+  viewerOffset = { x: 0, y: 0 };
+  viewerImg.style.transform = '';
+  viewerScrollRestore = chatMessages.scrollTop;
+  viewer.classList.add('active');
+  document.body.style.overflow = 'hidden';
+  viewerImg.src = '';
+  viewerImg.src = url;
 }
 
 function closeImageViewer() {
