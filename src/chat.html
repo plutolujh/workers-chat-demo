@@ -2875,6 +2875,20 @@ function addMsg(name, text, type = '', image = null, timestamp = null, isHistory
         }, { rootMargin: '100px' });
         observer.observe(img);
       }
+
+      // Lazy generate video thumbnail for placeholder videos
+      const placeholder = div.querySelector('.msg-video-thumb-placeholder');
+      if (placeholder) {
+        const videoObserver = new IntersectionObserver((entries) => {
+          entries.forEach(entry => {
+            if (entry.isIntersecting) {
+              videoObserver.unobserve(placeholder);
+              generateVideoThumbForPlaceholder(placeholder);
+            }
+          });
+        }, { rootMargin: '200px' });
+        videoObserver.observe(placeholder);
+      }
     }
   }
 
@@ -3077,6 +3091,42 @@ function isVideoFile(filename) {
   if (!filename) return false;
   const ext = filename.split('.').pop().toLowerCase();
   return ['mp4', 'mov', 'avi', 'mkv', 'webm', 'm4v', 'ogv', 'hevc', 'hev', 'heic', 'heif', '3gp'].includes(ext);
+}
+
+// Generate thumbnail for a placeholder element in the DOM
+async function generateVideoThumbForPlaceholder(placeholder) {
+  const videoSrc = placeholder.dataset.videoSrc;
+  if (!videoSrc) return;
+  try {
+    placeholder.querySelector('.thumb-loading').textContent = '⏳';
+    const res = await fetch(videoSrc);
+    if (!res.ok) throw new Error('fetch failed');
+    const blob = await res.blob();
+    const thumbBlob = await generateVideoThumbnail(blob);
+    const thumbUrl = URL.createObjectURL(thumbBlob);
+    const img = document.createElement('img');
+    img.src = thumbUrl;
+    img.style.cssText = 'width:140px;height:80px;object-fit:cover;border-radius:8px;cursor:pointer;';
+    img.onclick = (ev) => {
+      ev.stopPropagation();
+      const wrapper = placeholder.closest('.msg-video-wrapper');
+      const video = wrapper.querySelector('video');
+      if (video.paused) {
+        video.style.display = 'block';
+        placeholder.style.display = 'none';
+        video.play().catch(() => {});
+      } else {
+        video.pause();
+        video.style.display = 'none';
+        placeholder.style.display = 'flex';
+      }
+    };
+    placeholder.replaceWith(img);
+  } catch (err) {
+    console.warn('Auto video thumb failed:', err);
+    const loading = placeholder.querySelector('.thumb-loading');
+    if (loading) loading.textContent = '🎬';
+  }
 }
 
 // Generate video thumbnail
