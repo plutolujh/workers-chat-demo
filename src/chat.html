@@ -2771,15 +2771,10 @@ document.addEventListener('click', e => {
       viewer.classList.add('active', 'pdf-mode');
       viewerImg.style.display = 'none';
 
-      // Show loading state
-      const existingIframe = viewer.querySelector('iframe');
-      if (existingIframe) existingIframe.remove();
-
-      const iframe = document.createElement('iframe');
-      iframe.className = 'pdf-embed';
-      iframe.style.background = '#333';
-      iframe.textContent = 'Loading PDF...';
-      viewer.querySelector('#viewer-img-wrap').appendChild(iframe);
+      // Use existing iframe
+      const iframe = viewerIframe;
+      iframe.style.display = 'block';
+      iframe.srcdoc = '<html><body style="color:#ccc;padding:40px;text-align:center;font-family:sans-serif;">Loading PDF...</body></html>';
 
       // Use XHR to fetch PDF (includes cookies for auth)
       const xhr = new XMLHttpRequest();
@@ -2789,15 +2784,12 @@ document.addEventListener('click', e => {
         if (xhr.status === 200) {
           const blobUrl = URL.createObjectURL(xhr.response);
           iframe.src = blobUrl;
-          iframe.onload = function() {
-            iframe.style.background = '';
-          };
         } else {
-          iframe.srcdoc = '<html><body style="color:white;padding:20px;">Failed to load PDF (status: ' + xhr.status + ')</body></html>';
+          iframe.srcdoc = '<html><body style="color:#ccc;padding:40px;text-align:center;font-family:sans-serif;">Failed to load PDF (status: ' + xhr.status + ')</body></html>';
         }
       };
       xhr.onerror = function() {
-        iframe.srcdoc = '<html><body style="color:white;padding:20px;">Network error loading PDF</body></html>';
+        iframe.srcdoc = '<html><body style="color:#ccc;padding:40px;text-align:center;font-family:sans-serif;">Network error loading PDF</body></html>';
       };
       xhr.send();
       return;
