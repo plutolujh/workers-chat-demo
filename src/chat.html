@@ -564,8 +564,8 @@ body {
 
 /* ===== CHAT IMAGE ===== */
 .msg-image {
-  max-width: 240px;
-  max-height: 300px;
+  max-width: 140px;
+  max-height: 160px;
   border-radius: 8px;
   margin-top: 6px;
   cursor: pointer;
@@ -2610,7 +2610,7 @@ function addMsg(name, text, type = '', image = null, timestamp = null, isHistory
         } else {
           mediaHtml = `
             <div class="msg-video-wrapper" style="position:relative;display:inline-block;margin-top:6px;max-width:280px;">
-              <img class="msg-image" src="${thumbUrl}" alt="Video thumbnail" style="border-radius:8px;cursor:pointer;max-width:100%;max-height:200px;" onclick="event.stopPropagation();const v=this.closest('.msg-video-wrapper').querySelector('video');v.play().catch(()=>{});v.style.display='block';this.style.display='none';">
+              <img class="msg-image" src="${thumbUrl}" alt="Video thumbnail" style="border-radius:8px;cursor:pointer;max-width:100%;max-height:160px;" onclick="event.stopPropagation();const v=this.closest('.msg-video-wrapper').querySelector('video');v.play().catch(()=>{});v.style.display='block';this.style.display='none';">
               <video class="msg-video" src="${videoUrl}" style="display:none;width:100%;max-height:300px;border-radius:8px;" controls playsinline onclick="event.stopPropagation();this.pause();this.style.display='none';this.previousElementSibling.style.display='block';"></video>
             </div>
           `;
@@ -2748,7 +2748,7 @@ function addMsgOld(name, text, type = '', image = null, timestamp = null, fileNa
         const [thumbUrl, videoUrl] = parts;
         mediaHtml = `
           <div class="msg-video-wrapper" style="position:relative;display:inline-block;margin-top:6px;max-width:280px;">
-            <img class="msg-image" src="${thumbUrl}" alt="Video thumbnail" style="border-radius:8px;cursor:pointer;max-width:100%;max-height:200px;" onclick="event.stopPropagation();const v=this.closest('.msg-video-wrapper').querySelector('video');if(v.paused){v.style.display='block';v.play();this.style.display='none';}else{v.pause();v.style.display='none';this.style.display='block';}">
+            <img class="msg-image" src="${thumbUrl}" alt="Video thumbnail" style="border-radius:8px;cursor:pointer;max-width:100%;max-height:160px;" onclick="event.stopPropagation();const v=this.closest('.msg-video-wrapper').querySelector('video');if(v.paused){v.style.display='block';v.play();this.style.display='none';}else{v.pause();v.style.display='none';this.style.display='block';}">
             <video class="msg-video" src="${videoUrl}" style="display:none;width:100%;max-height:300px;border-radius:8px;" controls playsinline onclick="event.stopPropagation();this.style.display='none';this.previousElementSibling.style.display='block';"></video>
           </div>
         `;
