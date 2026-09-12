@@ -2629,8 +2629,6 @@ const viewerWrap = document.getElementById('viewer-img-wrap');
 
 function openImageViewer(url) {
   if (!url) return;
-  
-  // Show viewer first with placeholder
   currentViewerUrl = url;
   viewerScale = 1;
   viewerRotation = 0;
@@ -2639,21 +2637,7 @@ function openImageViewer(url) {
   viewerScrollRestore = chatMessages.scrollTop;
   viewer.classList.add('active');
   document.body.style.overflow = 'hidden';
-  
-  // Use XHR to load image (includes cookies for auth)
-  const xhr = new XMLHttpRequest();
-  xhr.open('GET', url, true);
-  xhr.responseType = 'blob';
-  xhr.onload = function() {
-    if (xhr.status === 200) {
-      const blobUrl = URL.createObjectURL(xhr.response);
-      viewerImg.src = blobUrl;
-    }
-  };
-  xhr.onerror = function() {
-    console.error('Image load error');
-  };
-  xhr.send();
+  viewerImg.src = url;
 }
 
 function closeImageViewer() {
