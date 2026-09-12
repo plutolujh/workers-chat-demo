@@ -2709,21 +2709,29 @@ viewerWrap.addEventListener('touchend', () => { lastTouchDist = null; });
 
 // Image in message click to open viewer
 document.addEventListener('click', e => {
+  console.log('Click target:', e.target.tagName, e.target.className, e.target.closest('.msg-pdf-wrapper') ? 'has-pdf-wrapper' : 'no-pdf');
   const img = e.target.closest('.msg-image');
   // Skip if this is a file wrapper (PDF/Office) or video wrapper
   if (!img) {
     // Check if it's a PDF or Office wrapper (handled above), otherwise skip
-    if (!e.target.closest('.msg-pdf-wrapper') && !e.target.closest('.msg-office-wrapper')) return;
+    if (!e.target.closest('.msg-pdf-wrapper') && !e.target.closest('.msg-office-wrapper')) {
+      console.log('Skipping - not PDF/Office/image');
+      return;
+    }
   }
   if (img && img.closest('.msg-video-wrapper')) return;
   
   // Handle PDF click
   const pdfWrapper = e.target.closest('.msg-pdf-wrapper');
   if (pdfWrapper) {
+    console.log('PDF wrapper found, url:', pdfWrapper.dataset.pdfUrl);
     e.preventDefault();
     e.stopPropagation();
     const url = pdfWrapper.dataset.pdfUrl;
-    if (!url) return;
+    if (!url) {
+      console.error('No PDF URL!');
+      return;
+    }
     
     viewerScrollRestore = chatMessages.scrollTop;
     viewer.classList.add('active', 'pdf-mode');
