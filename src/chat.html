@@ -1622,6 +1622,19 @@ body {
     background: var(--surface-hover);
   }
 
+  /* Mobile: larger resizable input for elderly users */
+  #chat-input {
+    min-height: 56px;
+    max-height: 200px;
+    font-size: 16px;
+    padding: 12px 0;
+  }
+
+  #chat-input::-webkit-resizer {
+    width: 50px;
+    height: 8px;
+  }
+
   .msg {
     padding: 5px 6px;
     gap: 8px;
