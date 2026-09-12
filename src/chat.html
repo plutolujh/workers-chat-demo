@@ -2646,10 +2646,14 @@ document.addEventListener('click', e => {
   // Handle PDF click
   const pdfWrapper = e.target.closest('.msg-pdf-wrapper');
   if (pdfWrapper) {
+    console.log('PDF clicked!', { pdfUrl: pdfWrapper.dataset.pdfUrl });
     e.preventDefault();
     e.stopPropagation();
     const pdfUrl = pdfWrapper.dataset.pdfUrl;
-    if (!pdfUrl) return;
+    if (!pdfUrl) {
+      console.error('No PDF URL found!');
+      return;
+    }
     
     viewerScrollRestore = chatMessages.scrollTop;
     viewer.classList.add('active', 'pdf-mode');
@@ -2664,6 +2668,7 @@ document.addEventListener('click', e => {
     iframe.className = 'pdf-embed';
     iframe.src = pdfUrl;
     viewer.querySelector('#viewer-img-wrap').appendChild(iframe);
+    console.log('PDF viewer opened');
     return;
   }
   const url = img.dataset.full || img.dataset.src || img.src;
@@ -3361,6 +3366,7 @@ function addMsg(name, text, type = '', image = null, timestamp = null, isHistory
         `;
       } else if (isPDFFile(fileName)) {
         // PDF - click to view
+        console.log('Rendering PDF:', { fileName, image: image ? image.slice(0, 80) : null, isPDF: isPDFFile(fileName) });
         mediaHtml = `
           <div class="msg-pdf-wrapper" data-pdf-url="${esc(image)}" style="cursor:pointer;display:inline-block;margin-top:6px;max-width:280px;">
             <div style="background:var(--surface-hover);border-radius:8px;padding:16px;display:flex;align-items:center;gap:12px;border:1px solid var(--border);">
