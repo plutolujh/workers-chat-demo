@@ -671,26 +671,12 @@ body {
 #image-viewer {
   display: none;
   position: fixed;
-  inset: 0;
-  z-index: 9999;
-  background: rgba(0,0,0,0.92);
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
 }
 
-#image-viewer.pdf-mode #viewer-toolbar { display: flex; }
-#image-viewer.pdf-mode #viewer-hint { display: none; }
-#image-viewer.pdf-mode #viewer-img-wrap {
-  background: transparent;
-  width: 100%;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-#image-viewer.pdf-mode #viewer-img-wrap img { display: none; }
-#image-viewer.pdf-mode iframe { display: block !important; width: 90%; height: 90%; border: none; border-radius: 8px; background: #fff; box-shadow: 0 8px 32px rgba(0,0,0,0.4); }
+#image-viewer.pdf-mode #viewer-toolbar { display: none !important; }
+#image-viewer.pdf-mode #viewer-hint { display: none !important; }
+#image-viewer.pdf-mode #viewer-img-wrap { background: transparent; }
+#image-viewer.pdf-mode iframe { display: block; width: 100%; height: 100%; border: none; }
 
 .pdf-embed {
   width: 100%;
@@ -1948,7 +1934,6 @@ button:focus-visible {
   </div>
   <div id="viewer-img-wrap">
     <img id="viewer-img" src="" alt="">
-    <iframe id="viewer-iframe" class="pdf-embed" style="display:none;" src=""></iframe>
     <div id="viewer-hint">Pinch or scroll to zoom · Drag to move</div>
   </div>
 </div>
@@ -2635,9 +2620,8 @@ let currentViewerUrl = null;
 const viewer = document.getElementById('image-viewer');
 const viewerImg = document.getElementById('viewer-img');
 const viewerWrap = document.getElementById('viewer-img-wrap');
-const viewerIframe = document.getElementById('viewer-iframe');
 
-function openImageViewer(url, isPdf = false) {
+function openImageViewer(url) {
   if (!url) return;
   // Prevent multiple calls
   if (openImageViewer.locked) return;
@@ -2652,19 +2636,9 @@ function openImageViewer(url, isPdf = false) {
   viewerScrollRestore = chatMessages.scrollTop;
   viewer.classList.add('active');
   document.body.style.overflow = 'hidden';
-
-  if (isPdf) {
-    viewer.classList.add('pdf-mode');
-    viewerImg.style.display = 'none';
-    viewerIframe.style.display = 'block';
-    viewerIframe.src = url;
-  } else {
-    viewer.classList.remove('pdf-mode');
-    viewerImg.style.display = '';
-    viewerIframe.style.display = 'none';
-    viewerIframe.src = '';
-    viewerImg.src = url;
-  }
+  viewer.classList.remove('pdf-mode');
+  viewerImg.style.display = '';
+  viewerImg.src = url;
 }
 
 function closeImageViewer() {
@@ -2672,9 +2646,10 @@ function closeImageViewer() {
   viewer.classList.remove('pdf-mode');
   viewerImg.src = '';
   viewerImg.style.display = '';
-  viewerIframe.style.display = 'none';
-  viewerIframe.src = '';
   document.body.style.overflow = '';
+  // Remove dynamically created iframe
+  const iframe = viewer.querySelector('#viewer-img-wrap iframe');
+  if (iframe) iframe.remove();
   // Restore scroll position after current event loop (prevents race with body.click)
   const savedScroll = viewerScrollRestore;
   viewerScrollRestore = null;
@@ -2763,22 +2738,26 @@ document.addEventListener('click', e => {
     }
     if (img && img.closest('.msg-video-wrapper')) return;
     
-    // Handle PDF click - use XHR to bypass CORS/iframe restrictions
+    // Handle PDF click
     const pdfWrapper = e.target.closest('.msg-pdf-wrapper');
     if (pdfWrapper) {
       e.preventDefault();
       e.stopPropagation();
       const url = pdfWrapper.dataset.pdfUrl;
-      console.log('PDF click:', url);
       if (!url) return;
 
       viewerScrollRestore = chatMessages.scrollTop;
       viewer.classList.add('active', 'pdf-mode');
       viewerImg.style.display = 'none';
 
-      // Try direct URL first (some CDNs support iframe embedding)
-      viewerIframe.style.display = 'block';
-      viewerIframe.src = url;
+      // Remove existing iframe and create new one
+      const existingIframe = viewer.querySelector('#viewer-img-wrap iframe');
+      if (existingIframe) existingIframe.remove();
+
+      const iframe = document.createElement('iframe');
+      iframe.className = 'pdf-embed';
+      iframe.src = url;
+      viewer.querySelector('#viewer-img-wrap').appendChild(iframe);
       return;
     }
 
