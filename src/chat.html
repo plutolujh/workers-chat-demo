@@ -1136,6 +1136,64 @@ body {
   border-color: var(--accent);
 }
 
+/* ===== iOS WHEEL PICKER ===== */
+.wheel-picker {
+  position: relative;
+  height: 120px;
+  overflow: hidden;
+  background: var(--surface);
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.wheel-container {
+  height: 100%;
+  overflow-y: scroll;
+  scroll-behavior: smooth;
+  scrollbar-width: none;
+}
+
+.wheel-container::-webkit-scrollbar {
+  display: none;
+}
+
+.wheel-slot {
+  padding: 20px 0;
+}
+
+.wheel-item {
+  height: 40px;
+  line-height: 40px;
+  text-align: center;
+  font-size: 18px;
+  font-weight: 500;
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  opacity: 0.5;
+}
+
+.wheel-item.selected {
+  color: var(--text);
+  font-weight: 600;
+  opacity: 1;
+  transform: scale(1.05);
+}
+
+.wheel-hint {
+  position: absolute;
+  top: 50%;
+  left: 4px;
+  right: 4px;
+  height: 40px;
+  margin-top: -20px;
+  border-top: 1px solid var(--accent);
+  border-bottom: 1px solid var(--accent);
+  pointer-events: none;
+  border-radius: 4px;
+}
+
 .remember-badge {
   display: none;
   align-items: center;
@@ -1867,13 +1925,18 @@ button:focus-visible {
           <input type="checkbox" id="remember-checkbox">
           <span data-i18n="remember_me">记住我</span>
         </label>
-        <select id="remember-expiry" class="remember-time">
-          <option value="30">30分钟</option>
-          <option value="60" selected>60分钟</option>
-          <option value="180">3小时</option>
-          <option value="360">6小时</option>
-          <option value="1440">24小时</option>
-        </select>
+        <div class="wheel-picker">
+          <div class="wheel-container" id="wheel-container">
+            <div class="wheel-slot">
+              <div class="wheel-item" data-value="30">30分钟</div>
+              <div class="wheel-item selected" data-value="60">60分钟</div>
+              <div class="wheel-item" data-value="180">3小时</div>
+              <div class="wheel-item" data-value="360">6小时</div>
+              <div class="wheel-item" data-value="1440">24小时</div>
+            </div>
+          </div>
+          <div class="wheel-hint"></div>
+        </div>
         <span id="remembered-badge" class="remember-badge" style="display:none">
           ✓ <span id="remembered-name"></span>
         </span>
@@ -2646,6 +2709,40 @@ document.getElementById('name-input').addEventListener('input', () => {
   document.getElementById('remember-checkbox').checked = false;
   document.querySelector('.remember-row').classList.remove('visible');
 });
+
+// ===== WHEEL PICKER =====
+(function() {
+  const container = document.getElementById('wheel-container');
+  if (!container) return;
+  
+  function updateSelection() {
+    const items = container.querySelectorAll('.wheel-item');
+    const scrollTop = container.scrollTop;
+    const itemHeight = 40;
+    const offset = 20; // center offset
+    
+    items.forEach((item, i) => {
+      const itemTop = i * itemHeight;
+      const dist = Math.abs(scrollTop + offset - itemTop - itemHeight/2);
+      if (dist < itemHeight/2) {
+        item.classList.add('selected');
+      } else {
+        item.classList.remove('selected');
+      }
+    });
+  }
+  
+  container.addEventListener('scroll', updateSelection, { passive: true });
+  
+  container.querySelectorAll('.wheel-item').forEach(item => {
+    item.addEventListener('click', () => {
+      const idx = Array.from(container.querySelectorAll('.wheel-item')).indexOf(item);
+      container.scrollTo({ top: idx * 40, behavior: 'smooth' });
+    });
+  });
+  
+  updateSelection();
+})();
 
 // Initialize saved username check on page load
 checkSavedUsername();
