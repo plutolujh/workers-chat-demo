@@ -2562,8 +2562,19 @@ function startChat() {
     if (!placeholder) return;
     e.stopPropagation();
     
+    // If thumbnail already generated, play video directly
+    if (placeholder.dataset.thumbGenerated === 'true') {
+      const wrapper = placeholder.closest('.msg-video-wrapper');
+      const video = wrapper ? wrapper.querySelector('video') : null;
+      if (video) {
+        video.style.display = 'block';
+        video.play().catch(() => {});
+        wrapper.style.display = 'none';
+      }
+      return;
+    }
+    
     const videoSrc = placeholder.dataset.videoSrc;
-    const fileName = placeholder.dataset.filename;
     
     // Show loading spinner
     const loadingEl = placeholder.querySelector('.thumb-loading');
