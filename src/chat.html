@@ -1086,34 +1086,42 @@ body {
 }
 
 
-/* ===== REMEMBER ME ===== */
-.remember-section {
-  margin: 14px 0;
-  display: flex;
+/* ===== REMEMBER ME (compact single row) ===== */
+.remember-row {
+  display: none;
   align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
   justify-content: center;
+  gap: 12px;
+  margin: 12px 0;
+  padding: 8px 12px;
+  background: var(--surface-hover);
+  border-radius: 8px;
+  border: 1px solid var(--border);
 }
 
-.remember-label {
+.remember-row.visible {
+  display: flex;
+}
+
+.remember-check {
   display: flex;
   align-items: center;
   gap: 5px;
   cursor: pointer;
   font-size: 13px;
   color: var(--text-muted);
+  white-space: nowrap;
 }
 
-.remember-label input[type="checkbox"] {
+.remember-check input[type="checkbox"] {
   width: 15px;
   height: 15px;
   accent-color: var(--accent);
   cursor: pointer;
 }
 
-.remember-select {
-  background: var(--surface-hover);
+.remember-time {
+  background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 6px;
   padding: 4px 8px;
@@ -1123,12 +1131,12 @@ body {
   cursor: pointer;
 }
 
-.remember-select:focus {
+.remember-time:focus {
   outline: none;
   border-color: var(--accent);
 }
 
-.remembered-badge {
+.remember-badge {
   display: none;
   align-items: center;
   gap: 4px;
@@ -1141,7 +1149,7 @@ body {
   cursor: pointer;
 }
 
-.remembered-badge:hover {
+.remember-badge:hover {
   background: var(--accent);
   color: var(--bg);
 }
@@ -1827,19 +1835,19 @@ button:focus-visible {
     <form id="name-form">
       <input type="text" id="name-input" class="modal-input" data-i18n-placeholder="name_placeholder" placeholder="Your name" maxlength="32" autocomplete="off" required>
       <button type="button" id="random-name-btn" class="modal-btn-outline" data-i18n="use_random">🎲 Random Name</button>
-      <div class="remember-section">
-        <label class="remember-label">
+      <div class="remember-row">
+        <label class="remember-check">
           <input type="checkbox" id="remember-checkbox">
           <span data-i18n="remember_me">记住我</span>
         </label>
-        <select id="remember-expiry" class="remember-select">
+        <select id="remember-expiry" class="remember-time">
           <option value="30">30分钟</option>
           <option value="60" selected>60分钟</option>
           <option value="180">3小时</option>
           <option value="360">6小时</option>
           <option value="1440">24小时</option>
         </select>
-        <span id="remembered-badge" class="remembered-badge" style="display:none" title="Click to clear">
+        <span id="remembered-badge" class="remember-badge" style="display:none">
           ✓ <span id="remembered-name"></span>
         </span>
       </div>
@@ -2585,6 +2593,7 @@ function checkSavedUsername() {
       badge.style.display = 'inline-flex';
       
       document.getElementById('remember-checkbox').checked = true;
+      document.querySelector('.remember-row').classList.add('visible');
       
       // Click badge to clear saved name
       badge.onclick = () => {
@@ -2608,10 +2617,20 @@ document.getElementById('name-input').addEventListener('input', () => {
   const badge = document.getElementById('remembered-badge');
   badge.style.display = 'none';
   document.getElementById('remember-checkbox').checked = false;
+  document.querySelector('.remember-row').classList.remove('visible');
 });
 
 // Initialize saved username check on page load
 checkSavedUsername();
+// Show remember row when checkbox is checked, hide otherwise
+document.getElementById('remember-checkbox').addEventListener('change', function() {
+  const row = document.querySelector('.remember-row');
+  if (this.checked) {
+    row.classList.add('visible');
+  } else {
+    row.classList.remove('visible');
+  }
+});
 
 document.getElementById('room-form').addEventListener('submit', e => {
   e.preventDefault();
