@@ -2178,7 +2178,7 @@ function generateRandomName() {
   ];
 
   // 50+ adjectives for 1100+ combinations (22 × 50 = 1100)
-  const adj = [
+  const adjEn = [
     'happy','clever','brave','quiet','wild','calm','bold','kind','quick','warm',
     'smart','gentle','happy','bright','lucky','swift','strong','sweet','cool','free',
     'proud','peace','dream','fancy','fluffy','golden','silent','silver','cosmic','mystic',
@@ -2186,7 +2186,19 @@ function generateRandomName() {
     'magic','lunar','solar','swift','zesty','azure','amber','jade','ruby','pearl'
   ];
 
+  // Chinese adjectives for Chinese names
+  const adjZh = [
+    '快乐','聪明','勇敢','安静','狂野','冷静','大胆','善良','快速','温暖',
+    '机智','温柔','开心','明亮','幸运','敏捷','强壮','甜美','酷','自由',
+    '骄傲','平和','梦幻','花哨','毛茸茸','金色','沉默','银色','宇宙','神秘',
+    '高贵','王子','女王','皇家','精神','火花','星空','阳光','勇敢','梦幻',
+    '魔法','月亮','太阳','敏捷','活力','蔚蓝','琥珀','翡翠','红宝石','珍珠'
+  ];
+
   const animal = animals[Math.floor(Math.random() * animals.length)];
+  
+  // Use Chinese adjectives when language is Chinese
+  const adj = currentLang === 'zh' ? adjZh : adjEn;
   const a = adj[Math.floor(Math.random() * adj.length)];
   return `${animal} ${a}`;
 }
