@@ -2628,6 +2628,9 @@ const viewerImg = document.getElementById('viewer-img');
 const viewerWrap = document.getElementById('viewer-img-wrap');
 
 function openImageViewer(url) {
+  console.log('openImageViewer called:', url ? url.slice(0, 80) : 'null');
+  console.log('viewer element:', viewer ? 'exists' : 'null');
+  console.log('viewerImg element:', viewerImg ? 'exists' : 'null');
   currentViewerUrl = url;
   viewerScale = 1;
   viewerRotation = 0;
@@ -2759,7 +2762,9 @@ document.addEventListener('click', e => {
     const url = img.dataset.full || img.dataset.src || img.src;
     if (url && url.startsWith('http')) {
       e.preventDefault();
+      console.log('About to call openImageViewer with:', url.slice(0, 80));
       openImageViewer(url);
+      console.log('openImageViewer called successfully');
     }
   } catch (err) {
     console.error('Click handler error:', err);
