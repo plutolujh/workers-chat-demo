@@ -3097,11 +3097,11 @@ const chatObserver = new MutationObserver((mutations) => {
   for (const m of mutations) {
     for (const node of m.addedNodes) {
       if (node.nodeType !== 1) continue;
-      // Skip if this node is the generated thumbnail wrapper (has data-thumb-generated)
-      if (node.hasAttribute && node.hasAttribute('data-thumb-generated')) continue;
+      // Skip if this node itself is the generated wrapper
+      if (node.dataset && node.dataset.thumbGenerated === 'true') continue;
       const placeholder = node.querySelector ? node.querySelector('.msg-video-thumb-placeholder') : null;
-      // Also skip if the found placeholder is the generated wrapper
-      if (placeholder && placeholder.hasAttribute && placeholder.hasAttribute('data-thumb-generated')) continue;
+      // Skip if the placeholder is the generated wrapper
+      if (placeholder && placeholder.dataset && placeholder.dataset.thumbGenerated === 'true') continue;
       if (placeholder) generateVideoThumbForPlaceholder(placeholder);
     }
   }
@@ -3111,12 +3111,12 @@ chatObserver.observe(chatMessages, { childList: true, subtree: true });
 // Generate thumbnail for a placeholder element in the DOM
 async function generateVideoThumbForPlaceholder(placeholder) {
   const videoSrc = placeholder.dataset.videoSrc;
+  // Skip if this is the auto-generated thumbnail wrapper (not original placeholder)
+  if (placeholder.dataset.thumbGenerated === 'true') return;
   if (!videoSrc) return;
   try {
     const loadingEl = placeholder.querySelector('.thumb-loading');
     if (loadingEl) loadingEl.textContent = '⏳';
-    // If no .thumb-loading span, this is the generated wrapper - skip
-    if (!loadingEl) return;
     const res = await fetch(videoSrc);
     if (!res.ok) throw new Error('fetch failed');
     const blob = await res.blob();
