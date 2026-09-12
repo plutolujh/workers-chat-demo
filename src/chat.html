@@ -2786,7 +2786,10 @@ document.addEventListener('click', e => {
   console.log('Image click:', { url: url ? url.slice(0, 100) : null, dataFull: img.dataset.full, dataSrc: img.dataset.src, src: img.src.slice(0, 100) });
   if (url && url.startsWith('http')) {
     e.preventDefault();
+    console.log('Opening image viewer with URL:', url.slice(0, 80));
     openImageViewer(url);
+  } else {
+    console.log('URL does not start with http, skipping. URL:', url);
   }
 });
 
