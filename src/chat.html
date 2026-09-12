@@ -2382,7 +2382,7 @@ function startChat() {
       const img = document.createElement('img');
       img.src = thumbUrl;
       img.alt = fileName;
-      img.style.cssText = 'width:200px;height:120px;object-fit:cover;border-radius:8px;cursor:pointer;';
+      img.style.cssText = 'width:140px;height:80px;object-fit:cover;border-radius:8px;cursor:pointer;';
       img.onclick = (ev) => {
         ev.stopPropagation();
         const wrapper = placeholder.closest('.msg-video-wrapper');
@@ -2621,7 +2621,7 @@ function addMsg(name, text, type = '', image = null, timestamp = null, isHistory
         // Fallback: video without thumbnail, show video icon
         mediaHtml = `
           <div class="msg-video-wrapper" style="position:relative;display:inline-block;margin-top:6px;max-width:280px;">
-            <div style="width:200px;height:120px;background:var(--surface-hover);border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:8px;" onclick="event.stopPropagation();const v=this.closest('.msg-video-wrapper').querySelector('video');v.play().catch(()=>{});v.style.display='block';this.style.display='none';">
+            <div style="width:140px;height:80px;background:var(--surface-hover);border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:8px;" onclick="event.stopPropagation();const v=this.closest('.msg-video-wrapper').querySelector('video');v.play().catch(()=>{});v.style.display='block';this.style.display='none';">
               <span style="font-size:28px;">🎬</span>
               <span style="font-size:11px;color:var(--text-muted);">${esc(fileName || 'video')}</span>
             </div>
@@ -2756,7 +2756,7 @@ function addMsgOld(name, text, type = '', image = null, timestamp = null, fileNa
         // Fallback: video without thumbnail, show video icon
         mediaHtml = `
           <div class="msg-video-wrapper" style="position:relative;display:inline-block;margin-top:6px;max-width:280px;">
-            <div style="width:200px;height:120px;background:var(--surface-hover);border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:8px;" onclick="event.stopPropagation();const v=this.closest('.msg-video-wrapper').querySelector('video');if(v.paused){v.style.display='block';this.style.display='none';v.play();}else{v.pause();v.style.display='none';this.style.display='flex';}">
+            <div style="width:140px;height:80px;background:var(--surface-hover);border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:8px;" onclick="event.stopPropagation();const v=this.closest('.msg-video-wrapper').querySelector('video');if(v.paused){v.style.display='block';this.style.display='none';v.play();}else{v.pause();v.style.display='none';this.style.display='flex';}">
               <span style="font-size:28px;">🎬</span>
               <span style="font-size:11px;color:var(--text-muted);">${esc(fileName || 'video')}</span>
             </div>
