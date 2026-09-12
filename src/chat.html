@@ -2701,8 +2701,12 @@ viewerWrap.addEventListener('touchend', () => { lastTouchDist = null; });
 // Image in message click to open viewer
 document.addEventListener('click', e => {
   const img = e.target.closest('.msg-image');
-  // Skip if this img is inside a video wrapper (video thumbnails should not open viewer)
-  if (!img || img.closest('.msg-video-wrapper')) return;
+  // Skip if this is a file wrapper (PDF/Office) or video wrapper
+  if (!img) {
+    // Check if it's a PDF or Office wrapper (handled above), otherwise skip
+    if (!e.target.closest('.msg-pdf-wrapper') && !e.target.closest('.msg-office-wrapper')) return;
+  }
+  if (img && img.closest('.msg-video-wrapper')) return;
   
   // Handle PDF click
   const pdfWrapper = e.target.closest('.msg-pdf-wrapper');
