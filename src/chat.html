@@ -2354,6 +2354,65 @@ function startChat() {
     }
   });
 
+  // Generate video thumbnail on first click for videos without thumbnail
+  chatMessages.addEventListener('click', async e => {
+    const placeholder = e.target.closest('.msg-video-thumb-placeholder');
+    if (!placeholder) return;
+    e.stopPropagation();
+    
+    const videoSrc = placeholder.dataset.videoSrc;
+    const fileName = placeholder.dataset.filename;
+    
+    // Show loading spinner
+    placeholder.querySelector('.thumb-loading').textContent = '⏳';
+    
+    try {
+      // Fetch video as blob
+      const res = await fetch(videoSrc);
+      if (!res.ok) throw new Error('Failed to fetch video');
+      const videoBlob = await res.blob();
+      
+      // Generate thumbnail
+      const thumbBlob = await generateVideoThumbnail(videoBlob);
+      
+      // Create object URL and replace placeholder with thumbnail
+      const thumbUrl = URL.createObjectURL(thumbBlob);
+      
+      // Replace placeholder with img
+      const img = document.createElement('img');
+      img.src = thumbUrl;
+      img.alt = fileName;
+      img.style.cssText = 'width:200px;height:120px;object-fit:cover;border-radius:8px;cursor:pointer;';
+      img.onclick = (ev) => {
+        ev.stopPropagation();
+        const wrapper = placeholder.closest('.msg-video-wrapper');
+        const video = wrapper.querySelector('video');
+        if (video.paused) {
+          video.style.display = 'block';
+          placeholder.style.display = 'none';
+          video.play().catch(() => {});
+        } else {
+          video.pause();
+          video.style.display = 'none';
+          placeholder.style.display = 'flex';
+        }
+      };
+      
+      placeholder.replaceWith(img);
+    } catch (err) {
+      console.warn('Failed to generate video thumbnail:', err);
+      // Restore play icon
+      const loading = placeholder.querySelector('.thumb-loading');
+      if (loading) loading.textContent = '🎬';
+      // Fallback: just play the video directly
+      const wrapper = placeholder.closest('.msg-video-wrapper');
+      const video = wrapper.querySelector('video');
+      placeholder.style.display = 'none';
+      video.style.display = 'block';
+      video.play().catch(() => {});
+    }
+  }, true);
+
   joinWS();
 }
 
