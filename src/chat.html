@@ -1085,6 +1085,67 @@ body {
   border-color: var(--accent);
 }
 
+
+/* ===== REMEMBER ME ===== */
+.remember-section {
+  margin: 14px 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.remember-label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.remember-label input[type="checkbox"] {
+  width: 15px;
+  height: 15px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.remember-select {
+  background: var(--surface-hover);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 12px;
+  font-family: inherit;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.remember-select:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.remembered-badge {
+  display: none;
+  align-items: center;
+  gap: 4px;
+  background: var(--accent-glow);
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: 12px;
+  padding: 3px 10px;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.remembered-badge:hover {
+  background: var(--accent);
+  color: var(--bg);
+}
+
 /* ===== RULES BOX ===== */
 .rules-box {
   background: var(--surface-hover);
