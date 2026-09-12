@@ -2628,20 +2628,54 @@ const viewerImg = document.getElementById('viewer-img');
 const viewerWrap = document.getElementById('viewer-img-wrap');
 
 function openImageViewer(url) {
-  if (!url || !viewer || !viewerImg) {
-    console.error('openImageViewer: missing params', { url, viewer: !!viewer, viewerImg: !!viewerImg });
+  // Prevent re-entry
+  if (openImageViewer.inProgress) return;
+  openImageViewer.inProgress = true;
+  
+  if (!url) {
+    openImageViewer.inProgress = false;
     return;
   }
-  currentViewerUrl = url;
-  viewerScale = 1;
-  viewerRotation = 0;
-  viewerOffset = { x: 0, y: 0 };
-  viewerImg.style.transform = '';
-  viewerScrollRestore = chatMessages.scrollTop;
-  viewer.classList.add('active');
-  document.body.style.overflow = 'hidden';
-  // Only set src once, without clearing first
-  viewerImg.src = url;
+  
+  // Skip if same URL already loaded
+  if (currentViewerUrl === url && viewer.classList.contains('active')) {
+    openImageViewer.inProgress = false;
+    return;
+  }
+  
+  try {
+    currentViewerUrl = url;
+    viewerScale = 1;
+    viewerRotation = 0;
+    viewerOffset = { x: 0, y: 0 };
+    viewerImg.style.transform = '';
+    viewerScrollRestore = chatMessages.scrollTop;
+    viewer.classList.add('active');
+    document.body.style.overflow = 'hidden';
+    
+    // Load image with timeout
+    const img = new Image();
+    img.onload = () => {
+      viewerImg.src = url;
+      openImageViewer.inProgress = false;
+    };
+    img.onerror = () => {
+      console.error('Failed to load image');
+      openImageViewer.inProgress = false;
+    };
+    img.src = url;
+    
+    // Fallback timeout in case onload never fires
+    setTimeout(() => {
+      if (openImageViewer.inProgress) {
+        viewerImg.src = url;
+        openImageViewer.inProgress = false;
+      }
+    }, 5000);
+  } catch (err) {
+    console.error('openImageViewer error:', err);
+    openImageViewer.inProgress = false;
+  }
 }
 
 function closeImageViewer() {
