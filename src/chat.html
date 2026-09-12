@@ -2676,7 +2676,9 @@ document.getElementById('name-form').addEventListener('submit', e => {
     // Handle remember me
     const remember = document.getElementById('remember-checkbox').checked;
     if (remember) {
-      const expiry = parseInt(document.getElementById('remember-expiry').value);
+      // Get expiry from wheel picker (data-value on selected item)
+      const selectedWheel = document.querySelector('.wheel-item.selected');
+      const expiry = selectedWheel ? parseInt(selectedWheel.dataset.value) : 60;
       const expiryTime = Date.now() + expiry * 60 * 1000;
       localStorage.setItem('chat-username', username);
       localStorage.setItem('chat-username-expiry', expiryTime.toString());
