@@ -2663,15 +2663,27 @@ function startChat() {
     const playBtn = container.querySelector('.msg-video-play-btn');
     const progressBar = container.querySelector('.msg-video-progress-bar');
     
-    // If player is visible and paused, or has src - toggle it
-    if (player.classList.contains('visible') || player.src) {
-      if (player.paused) {
-        player.play();
-      } else {
-        player.pause();
-        player.classList.remove('visible');
-        playBtn.style.display = 'flex';
-      }
+    // If player is visible and paused - resume play
+    if (player.classList.contains('visible') && player.paused) {
+      player.play();
+      return;
+    }
+    
+    // If player is visible but playing - pause it
+    if (player.classList.contains('visible') && !player.paused) {
+      player.pause();
+      player.classList.remove('visible');
+      playBtn.style.display = 'flex';
+      return;
+    }
+    
+    // If we have a preserved blob URL from a previous play, reuse it
+    if (player.dataset.blobUrl) {
+      player.src = player.dataset.blobUrl;
+      player.classList.add('visible');
+      container.querySelector('.msg-video-close-btn').classList.add('visible');
+      container.querySelector('.msg-video-thumb').style.display = 'none';
+      player.play().catch(() => {});
       return;
     }
     
@@ -2710,6 +2722,7 @@ function startChat() {
   });
   
   // Video close function (called from onclick)
+  // Preserves blob URL so re-play doesn't require re-download
   window.videoClose = function(closeBtn) {
     const container = closeBtn.closest('.msg-video-container');
     const player = container.querySelector('.msg-video-player');
@@ -2718,7 +2731,12 @@ function startChat() {
     
     player.pause();
     player.classList.remove('visible');
-    player.src = '';
+    // Store blob URL in data attribute before clearing src (for replay)
+    if (player.src && player.src.startsWith('blob:')) {
+      player.dataset.blobUrl = player.src;
+    }
+    player.removeAttribute('src');
+    player.load(); // Reset media state
     playBtn.style.display = 'flex';
     thumb.style.display = '';
     closeBtn.classList.remove('visible');
