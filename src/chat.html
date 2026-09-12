@@ -1766,6 +1766,22 @@ button:focus-visible {
     <form id="name-form">
       <input type="text" id="name-input" class="modal-input" data-i18n-placeholder="name_placeholder" placeholder="Your name" maxlength="32" autocomplete="off" required>
       <button type="button" id="random-name-btn" class="modal-btn-outline" data-i18n="use_random">🎲 Random Name</button>
+      <div class="remember-section">
+        <label class="remember-label">
+          <input type="checkbox" id="remember-checkbox">
+          <span data-i18n="remember_me">记住我</span>
+        </label>
+        <select id="remember-expiry" class="remember-select">
+          <option value="30">30分钟</option>
+          <option value="60" selected>60分钟</option>
+          <option value="180">3小时</option>
+          <option value="360">6小时</option>
+          <option value="1440">24小时</option>
+        </select>
+        <span id="remembered-badge" class="remembered-badge" style="display:none" title="Click to clear">
+          ✓ <span id="remembered-name"></span>
+        </span>
+      </div>
       <button type="submit" class="modal-btn" data-i18n="continue">Continue</button>
     </form>
   </div>
@@ -1838,6 +1854,11 @@ const i18n = {
     enter_room: 'Enter Room',
     link_copied: 'Link copied!',
     name_placeholder: 'Your name',
+    remember_me: '记住我',
+    remembered_for: '已记住（剩余',
+    minutes_left: '分钟）',
+    hours_left: '小时）',
+    expired: '已过期，请重新输入',
   },
   zh: {
     name_title: '加入聊天',
@@ -2450,6 +2471,18 @@ document.getElementById('name-form').addEventListener('submit', e => {
   e.preventDefault();
   username = document.getElementById('name-input').value.trim();
   if (username) {
+    // Handle remember me
+    const remember = document.getElementById('remember-checkbox').checked;
+    if (remember) {
+      const expiry = parseInt(document.getElementById('remember-expiry').value);
+      const expiryTime = Date.now() + expiry * 60 * 1000;
+      localStorage.setItem('chat-username', username);
+      localStorage.setItem('chat-username-expiry', expiryTime.toString());
+    } else {
+      localStorage.removeItem('chat-username');
+      localStorage.removeItem('chat-username-expiry');
+    }
+    
     nameOverlay.classList.add('hidden');
     roomOverlay.classList.remove('hidden');
     // Check hash for direct room join
@@ -2460,6 +2493,64 @@ document.getElementById('name-form').addEventListener('submit', e => {
     }
   }
 });
+
+// Check for saved username on load
+function checkSavedUsername() {
+  const savedName = localStorage.getItem('chat-username');
+  const savedExpiry = localStorage.getItem('chat-username-expiry');
+  
+  if (savedName && savedExpiry) {
+    const expiryTime = parseInt(savedExpiry);
+    const now = Date.now();
+    
+    if (now < expiryTime) {
+      // Valid saved username
+      const nameInput = document.getElementById('name-input');
+      nameInput.value = savedName;
+      
+      const remaining = expiryTime - now;
+      const remainingMin = Math.ceil(remaining / 60000);
+      let timeStr;
+      if (remainingMin >= 60) {
+        timeStr = (remainingMin / 60).toFixed(1) + t('hours_left');
+      } else {
+        timeStr = remainingMin + t('minutes_left');
+      }
+      
+      const badge = document.getElementById('remembered-badge');
+      const badgeName = document.getElementById('remembered-name');
+      badgeName.textContent = savedName;
+      badge.title = t('remembered_for') + timeStr;
+      badge.style.display = 'inline-flex';
+      
+      document.getElementById('remember-checkbox').checked = true;
+      
+      // Click badge to clear saved name
+      badge.onclick = () => {
+        localStorage.removeItem('chat-username');
+        localStorage.removeItem('chat-username-expiry');
+        nameInput.value = '';
+        badge.style.display = 'none';
+        document.getElementById('remember-checkbox').checked = false;
+      };
+      return;
+    } else {
+      // Expired, clear it
+      localStorage.removeItem('chat-username');
+      localStorage.removeItem('chat-username-expiry');
+    }
+  }
+}
+
+// Clear badge when user types in name input
+document.getElementById('name-input').addEventListener('input', () => {
+  const badge = document.getElementById('remembered-badge');
+  badge.style.display = 'none';
+  document.getElementById('remember-checkbox').checked = false;
+});
+
+// Initialize saved username check on page load
+checkSavedUsername();
 
 document.getElementById('room-form').addEventListener('submit', e => {
   e.preventDefault();
