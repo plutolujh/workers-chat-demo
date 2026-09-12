@@ -2805,11 +2805,10 @@ function addMsg(name, text, type = '', image = null, timestamp = null, isHistory
       }
 
       if (isVideoMedia && !isVideoCombined) {
-        // Fallback: video without thumbnail, show video icon
         mediaHtml = `
           <div class="msg-video-wrapper" style="position:relative;display:inline-block;margin-top:6px;max-width:280px;">
-            <div style="width:140px;height:80px;background:var(--surface-hover);border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:8px;" onclick="event.stopPropagation();const v=this.closest('.msg-video-wrapper').querySelector('video');v.play().catch(()=>{});v.style.display='block';this.style.display='none';">
-              <span style="font-size:28px;">🎬</span>
+            <div class="msg-video-thumb-placeholder" data-video-src="${esc(image)}" data-filename="${esc(fileName || 'video')}" style="width:140px;height:80px;background:var(--surface-hover);border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:8px;">
+              <span class="thumb-loading" style="font-size:28px;">🎬</span>
               <span style="font-size:11px;color:var(--text-muted);">${esc(fileName || 'video')}</span>
             </div>
             <video class="msg-video" src="${image}" style="display:none;width:100%;max-height:300px;border-radius:8px;" controls playsinline onclick="event.stopPropagation();this.pause();this.style.display='none';this.previousElementSibling.style.display='flex';"></video>
@@ -2876,19 +2875,6 @@ function addMsg(name, text, type = '', image = null, timestamp = null, isHistory
         observer.observe(img);
       }
 
-      // Lazy generate video thumbnail for placeholder videos
-      const placeholder = div.querySelector('.msg-video-thumb-placeholder');
-      if (placeholder) {
-        const videoObserver = new IntersectionObserver((entries) => {
-          entries.forEach(entry => {
-            if (entry.isIntersecting) {
-              videoObserver.unobserve(placeholder);
-              generateVideoThumbForPlaceholder(placeholder);
-            }
-          });
-        }, { rootMargin: '200px' });
-        videoObserver.observe(placeholder);
-      }
     }
   }
 
@@ -3092,6 +3078,18 @@ function isVideoFile(filename) {
   const ext = filename.split('.').pop().toLowerCase();
   return ['mp4', 'mov', 'avi', 'mkv', 'webm', 'm4v', 'ogv', 'hevc', 'hev', 'heic', 'heif', '3gp'].includes(ext);
 }
+
+// MutationObserver to watch for new placeholder elements being added to chat
+const chatObserver = new MutationObserver((mutations) => {
+  for (const m of mutations) {
+    for (const node of m.addedNodes) {
+      if (node.nodeType !== 1) continue;
+      const placeholder = node.querySelector ? node.querySelector('.msg-video-thumb-placeholder') : null;
+      if (placeholder) generateVideoThumbForPlaceholder(placeholder);
+    }
+  }
+});
+chatObserver.observe(chatMessages, { childList: true, subtree: true });
 
 // Generate thumbnail for a placeholder element in the DOM
 async function generateVideoThumbForPlaceholder(placeholder) {
