@@ -2721,47 +2721,48 @@ viewerWrap.addEventListener('touchend', () => { lastTouchDist = null; });
 
 // Image in message click to open viewer
 document.addEventListener('click', e => {
-  const img = e.target.closest('.msg-image');
-  // Skip if this is a file wrapper (PDF/Office) or video wrapper
-  if (!img) {
-    // Check if it's a PDF or Office wrapper (handled above), otherwise skip
-    if (!e.target.closest('.msg-pdf-wrapper') && !e.target.closest('.msg-office-wrapper')) {
+  try {
+    const img = e.target.closest('.msg-image');
+    // Skip if this is a file wrapper (PDF/Office) or video wrapper
+    if (!img) {
+      // Check if it's a PDF or Office wrapper (handled above), otherwise skip
+      if (!e.target.closest('.msg-pdf-wrapper') && !e.target.closest('.msg-office-wrapper')) {
+        return;
+      }
+    }
+    if (img && img.closest('.msg-video-wrapper')) return;
+    
+    // Handle PDF click - open in new tab since shotsync needs auth
+    const pdfWrapper = e.target.closest('.msg-pdf-wrapper');
+    if (pdfWrapper) {
+      e.preventDefault();
+      e.stopPropagation();
+      const url = pdfWrapper.dataset.pdfUrl;
+      if (!url) return;
+      window.open(url, '_blank');
       return;
     }
-  }
-  if (img && img.closest('.msg-video-wrapper')) return;
-  
-  // Handle PDF click - open in new tab since shotsync needs auth
-  const pdfWrapper = e.target.closest('.msg-pdf-wrapper');
-  if (pdfWrapper) {
-    e.preventDefault();
-    e.stopPropagation();
-    const url = pdfWrapper.dataset.pdfUrl;
-    if (!url) return;
     
-    // Open PDF in new tab (it will have proper cookies/auth)
-    window.open(url, '_blank');
-    return;
-  }
-  
-  // Handle Office files - open in new tab
-  const officeWrapper = e.target.closest('.msg-office-wrapper');
-  if (officeWrapper) {
-    e.preventDefault();
-    e.stopPropagation();
-    const url = officeWrapper.dataset.officeUrl;
-    if (!url) return;
+    // Handle Office files - open in new tab
+    const officeWrapper = e.target.closest('.msg-office-wrapper');
+    if (officeWrapper) {
+      e.preventDefault();
+      e.stopPropagation();
+      const url = officeWrapper.dataset.officeUrl;
+      if (!url) return;
+      window.open('https://view.officeapps.live.com/op/view.aspx?src=' + encodeURIComponent(url), '_blank');
+      return;
+    }
     
-    // Open in new tab with Office Online viewer
-    window.open('https://view.officeapps.live.com/op/view.aspx?src=' + encodeURIComponent(url), '_blank');
-    return;
-  }
-  const url = img.dataset.full || img.dataset.src || img.src;
-  if (url && url.startsWith('http')) {
-    e.preventDefault();
-    openImageViewer(url);
-  } else {
-    console.log('URL does not start with http, skipping. URL:', url);
+    // Handle image click
+    if (!img) return;
+    const url = img.dataset.full || img.dataset.src || img.src;
+    if (url && url.startsWith('http')) {
+      e.preventDefault();
+      openImageViewer(url);
+    }
+  } catch (err) {
+    console.error('Click handler error:', err);
   }
 });
 
