@@ -681,8 +681,15 @@ body {
 
 #image-viewer.pdf-mode #viewer-toolbar { display: none !important; }
 #image-viewer.pdf-mode #viewer-hint { display: none !important; }
-#image-viewer.pdf-mode #viewer-img-wrap { background: transparent; }
-#image-viewer.pdf-mode iframe { display: block; width: 100%; height: 100%; border: none; }
+#image-viewer.pdf-mode #viewer-img-wrap {
+  background: #1a1d27;
+  border-radius: 12px;
+  width: 75vw;
+  max-width: 900px;
+  height: 85vh;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+}
+#image-viewer.pdf-mode iframe { display: block; width: 100%; height: 100%; border: none; border-radius: 12px; }
 
 .pdf-embed {
   width: 100%;
