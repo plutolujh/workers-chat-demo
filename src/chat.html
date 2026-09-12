@@ -527,39 +527,24 @@ body {
   color: var(--error);
 }
 
-/* ===== WECHAT STYLE: Own messages on right, others on left ===== */
-.msg.own {
-  flex-direction: row-reverse;
-}
-
-.msg.own .msg-body {
-  align-items: flex-end;
-}
-
-.msg.own .msg-header {
-  flex-direction: row-reverse;
-}
-
+/* ===== WECHAT STYLE: Compact bubbles, all messages on left ===== */
 .msg.own .msg-text {
   background: var(--accent);
   color: var(--bg);
   padding: 8px 12px;
-  border-radius: 12px 12px 4px 12px;
-  max-width: 80%;
+  border-radius: 12px 12px 12px 4px;
+  max-width: max-content;
+  display: inline-block;
 }
 
 .msg.own .msg-image {
-  border-radius: 12px 12px 4px 12px;
+  border-radius: 12px 12px 12px 4px;
+  max-width: 280px;
 }
 
 .msg.own .msg-video-container {
-  border-radius: 12px 12px 4px 12px;
-}
-
-.msg.own .msg-pdf-wrapper,
-.msg.own .msg-office-wrapper,
-.msg.own .msg-file {
-  flex-direction: row-reverse;
+  border-radius: 12px 12px 12px 4px;
+  max-width: 280px;
 }
 
 .msg:not(.own) .msg-text {
@@ -567,15 +552,18 @@ body {
   color: var(--text);
   padding: 8px 12px;
   border-radius: 12px 12px 12px 4px;
-  max-width: 80%;
+  max-width: max-content;
+  display: inline-block;
 }
 
 .msg:not(.own) .msg-image {
   border-radius: 12px 12px 12px 4px;
+  max-width: 280px;
 }
 
 .msg:not(.own) .msg-video-container {
   border-radius: 12px 12px 12px 4px;
+  max-width: 280px;
 }
 
 /* ===== IMAGE PREVIEW ===== */
