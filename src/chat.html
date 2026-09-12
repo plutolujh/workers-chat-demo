@@ -2204,6 +2204,8 @@ cancelImgBtn.addEventListener('click', () => {
 
 // ===== IMAGE VIEWER =====
 let viewerScale = 1, viewerRotation = 0;
+let viewerCloseJustFired = false;
+let viewerScrollRestore = null;
 let viewerDragStart = null, viewerOffset = { x: 0, y: 0 };
 let currentViewerUrl = null;
 const viewer = document.getElementById('image-viewer');
@@ -2217,6 +2219,7 @@ function openImageViewer(url) {
   viewerRotation = 0;
   viewerOffset = { x: 0, y: 0 };
   viewerImg.style.transform = '';
+  viewerScrollRestore = chatMessages.scrollTop;
   viewer.classList.add('active');
   document.body.style.overflow = 'hidden';
   viewerImg.src = '';
@@ -2227,6 +2230,14 @@ function closeImageViewer() {
   viewer.classList.remove('active');
   viewerImg.src = '';
   document.body.style.overflow = '';
+  // Restore scroll position and prevent input focus
+  if (viewerScrollRestore) {
+    chatMessages.scrollTop = viewerScrollRestore;
+    viewerScrollRestore = null;
+  }
+  // Prevent body click from focusing input after close
+  viewerCloseJustFired = true;
+  setTimeout(() => { viewerCloseJustFired = false; }, 50);
 }
 
 function applyViewerTransform() {
@@ -2536,7 +2547,8 @@ function startChat() {
   });
 
   document.body.addEventListener('click', e => {
-    if (window.getSelection().toString() === '' && e.target !== chatInput && !e.target.closest('.msg-video-wrapper')) {
+    if (viewerCloseJustFired) return;
+    if (window.getSelection().toString() === '' && e.target !== chatInput && !e.target.closest('.msg-video-wrapper') && !e.target.closest('#image-viewer')) {
       chatInput.focus();
     }
   });
