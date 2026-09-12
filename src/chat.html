@@ -1249,6 +1249,33 @@ body {
   color: white;
 }
 
+/* ===== TOOLTIP ===== */
+[data-tooltip] {
+  position: relative;
+}
+
+[data-tooltip]::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--text);
+  color: var(--bg);
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s;
+  z-index: 100;
+}
+
+[data-tooltip]:hover::after {
+  opacity: 1;
+}
+
 .version-badge {
   font-size: 10px;
   color: var(--text-muted);
@@ -1730,8 +1757,8 @@ button:focus-visible {
     </div>
   </div>
   <div class="header-right">
-    <button id="clear-btn" class="clear-btn" title="Clear chat" style="display:none">🗑️</button>
-    <button id="delete-btn" class="delete-btn" title="Delete history" style="display:none">🧹</button>
+    <button id="clear-btn" class="clear-btn" data-tooltip="Clear chat" style="display:none">🗑️</button>
+    <button id="delete-btn" class="delete-btn" data-tooltip="Delete history" style="display:none">🧹</button>
     <button id="share-btn" class="share-btn">🔗</button>
     <div class="theme-switcher">
       <button class="theme-btn active" data-theme="dark" title="Dark">🌙</button>
