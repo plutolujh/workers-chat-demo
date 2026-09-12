@@ -2568,7 +2568,9 @@ function startChat() {
         // Hide placeholder children and icons
         const orig = placeholder.querySelectorAll('.thumb-loading, span');
         orig.forEach(c => c.style.display = 'none');
-        placeholder.querySelectorAll('div').forEach(d => { if (d.textContent === '▶' || d.textContent === '✕') d.style.display = 'none'; });
+        placeholder.querySelectorAll('div, img').forEach(d => { d.style.display = 'none'; });
+        // Hide native video controls overlay
+        video.removeAttribute('controls');
       }
       return;
     }
@@ -2608,9 +2610,10 @@ function startChat() {
         placeholder.style.display = 'flex';
         const orig = placeholder.querySelectorAll('.thumb-loading, span');
         orig.forEach(c => c.style.display = '');
-        const gen = placeholder.querySelectorAll('img, div[style*="position:absolute"]');
-        gen.forEach(c => { if (c !== closeIcon && c !== playIcon) c.remove(); });
-        placeholder.dataset.thumbGenerated = '';
+        // Remove all generated children (img, icons) from placeholder
+        const gen = placeholder.querySelectorAll('img, div');
+        gen.forEach(c => c.remove());
+        video.setAttribute('controls', '');
       };
       placeholder.appendChild(img);
       placeholder.appendChild(playIcon);
