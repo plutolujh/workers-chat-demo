@@ -527,6 +527,57 @@ body {
   color: var(--error);
 }
 
+/* ===== WECHAT STYLE: Own messages on right, others on left ===== */
+.msg.own {
+  flex-direction: row-reverse;
+}
+
+.msg.own .msg-body {
+  align-items: flex-end;
+}
+
+.msg.own .msg-header {
+  flex-direction: row-reverse;
+}
+
+.msg.own .msg-text {
+  background: var(--accent);
+  color: var(--bg);
+  padding: 8px 12px;
+  border-radius: 12px 12px 4px 12px;
+  max-width: 80%;
+}
+
+.msg.own .msg-image {
+  border-radius: 12px 12px 4px 12px;
+}
+
+.msg.own .msg-video-container {
+  border-radius: 12px 12px 4px 12px;
+}
+
+.msg.own .msg-pdf-wrapper,
+.msg.own .msg-office-wrapper,
+.msg.own .msg-file {
+  flex-direction: row-reverse;
+}
+
+.msg:not(.own) .msg-text {
+  background: var(--surface-hover);
+  color: var(--text);
+  padding: 8px 12px;
+  border-radius: 12px 12px 12px 4px;
+  max-width: 80%;
+}
+
+.msg:not(.own) .msg-image {
+  border-radius: 12px 12px 12px 4px;
+}
+
+.msg:not(.own) .msg-video-container {
+  border-radius: 12px 12px 12px 4px;
+}
+
 /* ===== IMAGE PREVIEW ===== */
 .image-preview {
   position: relative;
@@ -3305,8 +3356,9 @@ function recallSelectedMsg() {
 }
 
 function addMsg(name, text, type = '', image = null, timestamp = null, isHistory = false, fileName = '') {
+  const isOwn = name === username;
   const div = document.createElement('div');
-  div.className = 'msg' + (type ? ' ' + type : '');
+  div.className = 'msg' + (type ? ' ' + type : '') + (isOwn ? ' own' : '');
   if (timestamp) {
     div.dataset.id = timestamp;
     div.onclick = () => selectMsg(div, timestamp);
@@ -3480,8 +3532,9 @@ function addMsg(name, text, type = '', image = null, timestamp = null, isHistory
 // asc: insert new messages between button and existing oldest message
 // desc: insert new messages at top (newest at top, button at bottom)
 function addMsgOld(name, text, type = '', image = null, timestamp = null, fileName = '') {
+  const isOwn = name === username;
   const div = document.createElement('div');
-  div.className = 'msg' + (type ? ' ' + type : '');
+  div.className = 'msg' + (type ? ' ' + type : '') + (isOwn ? ' own' : '');
   if (timestamp) {
     div.dataset.id = timestamp;
   }
@@ -3538,7 +3591,6 @@ function addMsgOld(name, text, type = '', image = null, timestamp = null, fileNa
         mediaHtml = `<div class="msg-file"><span class="msg-file-icon">${getFileIcon(fileName)}</span><span class="msg-file-name">${esc(fileName)}</span></div>`;
       }
     }
-    const isOwn = name === username;
     const recallBtn = isOwn && timestamp ? `<button class="msg-recall-btn" style="display:none;margin-top:4px;font-size:11px;padding:2px 8px;background:#666;color:#fff;border:none;border-radius:4px;cursor:pointer;text-align:center;width:auto;min-width:32px">${currentLang==='zh'?'↩️':'↩️'}</button>` : '';
 
     div.innerHTML = `
