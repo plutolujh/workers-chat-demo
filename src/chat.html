@@ -4197,9 +4197,9 @@ function addMsg(name, text, type = '', image = null, timestamp = null, isHistory
           <span class="msg-time">${time}</span>
           ${quoteBtn}
         </div>
-        ${quoteHtml}
         ${textHtml}
         ${expandBtn}
+        ${quoteHtml}
         ${mediaHtml}
         ${recallBtn}
       </div>
@@ -4372,8 +4372,8 @@ function addMsgOld(name, text, type = '', image = null, timestamp = null, fileNa
           <span class="msg-time">${time}</span>
           ${quoteBtn}
         </div>
-        ${quoteHtml}
         ${text ? `<div class="msg-text">${esc(text)}</div>` : ''}
+        ${quoteHtml}
         ${mediaHtml}
         ${recallBtn}
       </div>
