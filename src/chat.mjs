@@ -625,7 +625,8 @@ export class ChatRoom {
         name: session.name,
         message: "" + (data.message || ""),
         image: data.image || null,
-        fileName: data.fileName || ""
+        fileName: data.fileName || "",
+        quote: data.quote || null
       };
 
       // Block people from sending overly long messages. This is also enforced on the client,
