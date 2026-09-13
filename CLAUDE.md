@@ -39,6 +39,22 @@ wrangler secret put MINIMAX_ASR_API_KEY
 - **视频**: 上传原文件 + 自动生成缩略图（最大 50MB）
 - **其他文件**: 直接上传（PDF, DOC, XLS, TXT 等）
 
+## 限制参数
+
+| 类型 | 限制 | 说明 |
+|------|------|------|
+| **文字消息** | 2000 字符 | 前端 textarea maxlength + 后端验证 |
+| **语音录音** | 5 分钟（300秒） | 自动停止，API 上限 500 秒 |
+| **视频文件** | 50 MB | shotsync 服务限制 |
+| **图片文件** | 无硬性限制 | 压缩后上传，建议原图 ≤ 10MB |
+| **房间名称** | 32 字符 | 房间 ID 编码限制 |
+| **用户名** | 32 字符 | localStorage + 表单验证 |
+
+### MiniMax ASR API 限制
+- **音频时长**: 最长 500 秒
+- **音频格式**: wav, aiff, flac, alac(m4a), mp3, aac, opus, ogg
+- **音频大小**: 最大 50 MB
+
 ## 消息排序模式
 
 参考文档: `docs/CHAT_MODES_SPEC.md`
