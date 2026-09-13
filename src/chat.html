@@ -1008,6 +1008,47 @@ body {
   color: var(--error);
 }
 
+.voice-timer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.voice-timer.recording {
+  color: #ef4444;
+}
+
+.voice-timer-bar {
+  flex: 1;
+  height: 4px;
+  background: var(--border);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.voice-timer-progress {
+  height: 100%;
+  background: #ef4444;
+  border-radius: 2px;
+  transition: width 0.1s linear;
+}
+
+.voice-timer-progress.warning {
+  background: #f59e0b;
+}
+
+.voice-timer-progress.danger {
+  background: #ef4444;
+  animation: pulse-danger 0.5s ease-in-out infinite;
+}
+
+@keyframes pulse-danger {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
 .emoji-picker {
   position: absolute;
   top: 100%;
@@ -3196,6 +3237,9 @@ let isRecording = false;
 let mediaRecorder = null;
 let audioChunks = [];
 let recordingTimeout = null;
+let recordingTimer = null;
+let recordingStartTime = null;
+const MAX_RECORDING_TIME = 300000; // 5 minutes
 
 // Detect language from page - check if Chinese characters are used
 function detectLanguage(text) {
@@ -3241,17 +3285,22 @@ async function startRecording() {
 
     mediaRecorder.start();
     isRecording = true;
+    recordingStartTime = Date.now();
     voiceBtn.classList.add('recording');
     voiceBtn.classList.remove('transcribing');
-    voiceStatus.textContent = currentLang === 'zh' ? '🔴 录音中...' : '🔴 Recording...';
     voiceStatus.classList.remove('error');
+    voiceStatus.classList.add('voice-timer', 'recording');
+
+    // Start recording timer
+    updateRecordingTimer();
+    recordingTimer = setInterval(updateRecordingTimer, 100);
 
     // Auto-stop after 5 minutes (300 seconds) - API limit is 500 seconds
     recordingTimeout = setTimeout(() => {
       if (isRecording) {
         stopRecording();
       }
-    }, 300000);
+    }, MAX_RECORDING_TIME);
 
   } catch (err) {
     console.error('Microphone access error:', err);
@@ -3330,12 +3379,44 @@ function stopRecording() {
   }
   isRecording = false;
   voiceBtn.classList.remove('recording');
-  voiceStatus.textContent = currentLang === 'zh' ? '⏳ 正在转写...' : '⏳ Transcribing...';
 
+  // Clear timer
+  if (recordingTimer) {
+    clearInterval(recordingTimer);
+    recordingTimer = null;
+  }
   if (recordingTimeout) {
     clearTimeout(recordingTimeout);
     recordingTimeout = null;
   }
+
+  voiceStatus.classList.remove('voice-timer', 'recording');
+  voiceStatus.textContent = currentLang === 'zh' ? '⏳ 正在转写...' : '⏳ Transcribing...';
+}
+
+function updateRecordingTimer() {
+  if (!isRecording || !recordingStartTime) return;
+
+  const elapsed = Date.now() - recordingStartTime;
+  const remaining = MAX_RECORDING_TIME - elapsed;
+  const progress = Math.min(elapsed / MAX_RECORDING_TIME, 1);
+  const elapsedSec = Math.floor(elapsed / 1000);
+  const remainingSec = Math.floor(remaining / 1000);
+
+  const min = Math.floor(elapsedSec / 60);
+  const sec = elapsedSec % 60;
+  const timeStr = `${min}:${sec.toString().padStart(2, '0')}`;
+
+  // Warning at 80% (4 minutes), danger at 95% (4.75 minutes)
+  const progressClass = progress > 0.95 ? 'danger' : progress > 0.8 ? 'warning' : '';
+
+  voiceStatus.innerHTML = `
+    <span>🔴 ${timeStr}</span>
+    <div class="voice-timer-bar">
+      <div class="voice-timer-progress ${progressClass}" style="width: ${(1 - progress) * 100}%"></div>
+    </div>
+    <span>${Math.floor(remainingSec / 60)}:${(remainingSec % 60).toString().padStart(2, '0')}</span>
+  `;
 }
 
 async function transcribeAudio() {

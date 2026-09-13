@@ -630,8 +630,8 @@ export class ChatRoom {
 
       // Block people from sending overly long messages. This is also enforced on the client,
       // so to trigger this the user must be bypassing the client code.
-      if (data.message.length > 256) {
-        webSocket.send(JSON.stringify({error: "Message too long."}));
+      if (data.message.length > 2000) {
+        webSocket.send(JSON.stringify({error: "Message too long (max 2000 chars)."}));
         return;
       }
 
