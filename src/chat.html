@@ -950,7 +950,6 @@ body {
 
 .voice-btn.recording {
   background: #ef4444;
-  animation: pulse-recording 1s ease-in-out infinite;
 }
 
 .voice-btn.transcribing {
@@ -958,16 +957,12 @@ body {
   cursor: wait;
 }
 
-@keyframes pulse-recording {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.1); }
-}
-
 .voice-btn .wave {
   display: none;
   gap: 2px;
-  height: 16px;
+  height: 18px;
   align-items: center;
+  justify-content: center;
 }
 
 .voice-btn.recording .wave {
@@ -978,22 +973,12 @@ body {
   display: none;
 }
 
-.voice-btn .wave span {
+.voice-btn .wave-bar {
   width: 3px;
   background: #fff;
   border-radius: 2px;
-  animation: wave-bar 0.5s ease-in-out infinite;
-}
-
-.voice-btn .wave span:nth-child(1) { height: 6px; animation-delay: 0s; }
-.voice-btn .wave span:nth-child(2) { height: 10px; animation-delay: 0.1s; }
-.voice-btn .wave span:nth-child(3) { height: 14px; animation-delay: 0.2s; }
-.voice-btn .wave span:nth-child(4) { height: 10px; animation-delay: 0.3s; }
-.voice-btn .wave span:nth-child(5) { height: 6px; animation-delay: 0.4s; }
-
-@keyframes wave-bar {
-  0%, 100% { transform: scaleY(0.5); }
-  50% { transform: scaleY(1); }
+  transition: height 0.05s ease-out;
+  min-height: 3px;
 }
 
 /* Voice transcription status */
@@ -2123,7 +2108,15 @@ button:focus-visible {
         <button id="image-btn" class="image-btn" type="button">🖼️</button>
         <button id="voice-btn" class="voice-btn" type="button" title="Voice to text">
           <span class="mic-icon">🎤</span>
-          <span class="wave"><span></span><span></span><span></span><span></span><span></span></span>
+          <span class="wave">
+            <span class="wave-bar"></span>
+            <span class="wave-bar"></span>
+            <span class="wave-bar"></span>
+            <span class="wave-bar"></span>
+            <span class="wave-bar"></span>
+            <span class="wave-bar"></span>
+            <span class="wave-bar"></span>
+          </span>
         </button>
         <button id="emoji-btn" class="emoji-btn" type="button">😊</button>
         <button id="recall-btn" class="recall-btn" type="button" style="display:none">↩️</button>
@@ -3239,6 +3232,10 @@ let audioChunks = [];
 let recordingTimeout = null;
 let recordingTimer = null;
 let recordingStartTime = null;
+let audioContext = null;
+let analyser = null;
+let audioStream = null;
+let visualizerTimer = null;
 const MAX_RECORDING_TIME = 300000; // 5 minutes
 
 // Detect language from page - check if Chinese characters are used
@@ -3269,6 +3266,14 @@ async function startRecording() {
     console.log('Using audio mimeType:', mimeType);
     mediaRecorder = new MediaRecorder(stream, { mimeType });
 
+    // Set up audio analyser for visualization
+    audioStream = stream;
+    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    analyser = audioContext.createAnalyser();
+    analyser.fftSize = 64;
+    const source = audioContext.createMediaStreamSource(stream);
+    source.connect(analyser);
+
     mediaRecorder.ondataavailable = e => {
       if (e.data.size > 0) {
         audioChunks.push(e.data);
@@ -3277,6 +3282,7 @@ async function startRecording() {
 
     mediaRecorder.onstop = async () => {
       stream.getTracks().forEach(track => track.stop());
+      stopVisualizer();
 
       if (audioChunks.length > 0) {
         await transcribeAudio();
@@ -3294,6 +3300,9 @@ async function startRecording() {
     // Start recording timer
     updateRecordingTimer();
     recordingTimer = setInterval(updateRecordingTimer, 100);
+
+    // Start visualizer
+    startVisualizer();
 
     // Auto-stop after 5 minutes (300 seconds) - API limit is 500 seconds
     recordingTimeout = setTimeout(() => {
@@ -3390,8 +3399,55 @@ function stopRecording() {
     recordingTimeout = null;
   }
 
+  // Clear visualizer
+  stopVisualizer();
+
   voiceStatus.classList.remove('voice-timer', 'recording');
   voiceStatus.textContent = currentLang === 'zh' ? '⏳ 正在转写...' : '⏳ Transcribing...';
+}
+
+function startVisualizer() {
+  const waveBars = document.querySelectorAll('.voice-btn .wave-bar');
+  if (!analyser || waveBars.length === 0) return;
+
+  const dataArray = new Uint8Array(analyser.frequencyBinCount);
+
+  function draw() {
+    if (!isRecording || !analyser) return;
+
+    analyser.getByteFrequencyData(dataArray);
+
+    // Update each bar based on frequency data
+    waveBars.forEach((bar, i) => {
+      // Map frequency bins to bars
+      const value = dataArray[i * 2] || 0;
+      const height = Math.max(3, (value / 255) * 18);
+      bar.style.height = height + 'px';
+    });
+
+    visualizerTimer = requestAnimationFrame(draw);
+  }
+
+  draw();
+}
+
+function stopVisualizer() {
+  if (visualizerTimer) {
+    cancelAnimationFrame(visualizerTimer);
+    visualizerTimer = null;
+  }
+
+  // Reset bar heights
+  document.querySelectorAll('.voice-btn .wave-bar').forEach(bar => {
+    bar.style.height = '3px';
+  });
+
+  // Close audio context
+  if (audioContext) {
+    audioContext.close();
+    audioContext = null;
+    analyser = null;
+  }
 }
 
 function updateRecordingTimer() {
