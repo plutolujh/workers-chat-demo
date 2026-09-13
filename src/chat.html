@@ -3378,6 +3378,7 @@ async function transcribeAudio() {
     }
 
     const result = await response.json();
+    console.log('ASR response:', result);
 
     if (result.text) {
       const transcript = result.text.trim();
@@ -3394,7 +3395,8 @@ async function transcribeAudio() {
         voiceStatus.textContent = currentLang === 'zh' ? '⚠️ 未识别到语音' : '⚠️ No speech detected';
       }
     } else {
-      throw new Error('Invalid response format');
+      console.error('ASR result without text:', result);
+      throw new Error('Invalid response format: ' + JSON.stringify(result));
     }
 
   } catch (err) {
