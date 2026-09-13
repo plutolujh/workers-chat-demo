@@ -3520,14 +3520,43 @@ async function transcribeAudio() {
 
     const transcript = (result.text || '').trim();
     if (transcript) {
-      // Append to existing input or replace
-      if (chatInput.value.trim()) {
-        chatInput.value += ' ' + transcript;
+      const MAX_CHARS = 2000;
+
+      if (transcript.length <= MAX_CHARS) {
+        // Short transcript: put in input box
+        if (chatInput.value.trim()) {
+          chatInput.value += ' ' + transcript;
+        } else {
+          chatInput.value = transcript;
+        }
+        chatInput.dispatchEvent(new Event('input')); // Trigger auto-resize
+        voiceStatus.textContent = currentLang === 'zh' ? '✅ 转写完成' : '✅ Transcribed';
       } else {
-        chatInput.value = transcript;
+        // Long transcript: auto-split and send as multiple messages
+        voiceStatus.textContent = currentLang === 'zh' ? '📤 自动分条发送中...' : '📤 Sending as multiple messages...';
+
+        // Split into chunks of MAX_CHARS
+        const chunks = [];
+        for (let i = 0; i < transcript.length; i += MAX_CHARS) {
+          chunks.push(transcript.slice(i, i + MAX_CHARS));
+        }
+
+        // Send each chunk with a small delay
+        for (let i = 0; i < chunks.length; i++) {
+          chatInput.value = `[${i + 1}/${chunks.length}] ${chunks[i]}`;
+          chatInput.dispatchEvent(new Event('input'));
+          sendMessage();
+
+          // Delay between sends to avoid rate limiting
+          if (i < chunks.length - 1) {
+            await new Promise(resolve => setTimeout(resolve, 500));
+          }
+        }
+
+        voiceStatus.textContent = currentLang === 'zh'
+          ? `✅ 转写完成（已分${chunks.length}条发送）`
+          : `✅ Transcribed (sent as ${chunks.length} messages)`;
       }
-      chatInput.dispatchEvent(new Event('input')); // Trigger auto-resize
-      voiceStatus.textContent = currentLang === 'zh' ? '✅ 转写完成' : '✅ Transcribed';
     } else {
       voiceStatus.textContent = currentLang === 'zh' ? '⚠️ 未识别到语音' : '⚠️ No speech detected';
     }
