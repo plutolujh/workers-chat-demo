@@ -593,6 +593,49 @@ body {
   max-width: 260px;
 }
 
+/* ===== COLLAPSIBLE MESSAGE ===== */
+.msg-text.collapsible {
+  position: relative;
+  max-height: 120px;
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.msg-text.collapsed::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 40px;
+  background: linear-gradient(transparent, var(--surface-hover));
+  pointer-events: none;
+}
+
+.msg:not(.own) .msg-text.collapsed::after {
+  background: linear-gradient(transparent, var(--surface-hover));
+}
+
+.msg.own .msg-text.collapsed::after {
+  background: linear-gradient(transparent, var(--accent-glow));
+}
+
+.msg-expand-btn {
+  display: block;
+  margin-top: 4px;
+  padding: 2px 8px;
+  font-size: 11px;
+  color: var(--accent);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+}
+
+.msg-expand-btn:hover {
+  text-decoration: underline;
+}
+
 /* ===== IMAGE PREVIEW ===== */
 .image-preview {
   position: relative;
@@ -3996,6 +4039,12 @@ function addMsg(name, text, type = '', image = null, timestamp = null, isHistory
     // Recall button only shown when selected in recall mode
     const recallBtn = isOwn && timestamp ? `<button class="msg-recall-btn" style="display:none;margin-top:4px;font-size:11px;padding:2px 8px;background:#666;color:#fff;border:none;border-radius:4px;cursor:pointer;text-align:center;width:auto;min-width:32px">${currentLang==='zh'?'↩️':'↩️'}</button>` : '';
 
+    // Collapsible long text messages
+    const COLLAPSE_THRESHOLD = 300;
+    const isLongText = text && text.length > COLLAPSE_THRESHOLD;
+    const textHtml = text ? `<div class="msg-text${isLongText ? ' collapsible collapsed' : ''}"${isLongText ? ` data-full-text="${esc(text)}" data-collapsed="true"` : ''}>${esc(text)}</div>` : '';
+    const expandBtn = isLongText ? `<button class="msg-expand-btn">${currentLang === 'zh' ? '展开 ▼' : 'Expand ▼'}</button>` : '';
+
     div.innerHTML = `
       <div class="msg-avatar">${avatarContent}</div>
       <div class="msg-body">
@@ -4003,11 +4052,39 @@ function addMsg(name, text, type = '', image = null, timestamp = null, isHistory
           <span class="msg-name">${esc(displayName)}</span>
           <span class="msg-time">${time}</span>
         </div>
-        ${text ? `<div class="msg-text">${esc(text)}</div>` : ''}
+        ${textHtml}
+        ${expandBtn}
         ${mediaHtml}
         ${recallBtn}
       </div>
     `;
+
+    // Add collapse/expand handler
+    if (isLongText) {
+      const msgText = div.querySelector('.msg-text');
+      const expandBtnEl = div.querySelector('.msg-expand-btn');
+
+      const toggleCollapse = () => {
+        const isCollapsed = msgText.dataset.collapsed === 'true';
+        if (isCollapsed) {
+          msgText.classList.remove('collapsed');
+          msgText.style.maxHeight = 'none';
+          expandBtnEl.textContent = currentLang === 'zh' ? '收起 ▲' : 'Collapse ▲';
+          msgText.dataset.collapsed = 'false';
+        } else {
+          msgText.classList.add('collapsed');
+          msgText.style.maxHeight = '120px';
+          expandBtnEl.textContent = currentLang === 'zh' ? '展开 ▼' : 'Expand ▼';
+          msgText.dataset.collapsed = 'true';
+        }
+      };
+
+      msgText.addEventListener('click', toggleCollapse);
+      expandBtnEl.addEventListener('click', (e) => {
+        e.stopPropagation();
+        toggleCollapse();
+      });
+    }
 
     // Add click handler for recall button inside message
     if (isOwn && timestamp) {
