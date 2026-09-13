@@ -152,6 +152,15 @@ body {
   font-weight: 500;
 }
 
+.env-badge {
+  background: #fb923c;
+  border-radius: 20px;
+  padding: 4px 10px;
+  font-size: 11px;
+  color: #fff;
+  font-weight: 600;
+}
+
 .header-right {
   display: flex;
   align-items: center;
@@ -1996,6 +2005,7 @@ button:focus-visible {
       <span>EdgeChat</span>
     </div>
     <span id="room-badge" class="room-badge" style="display:none"></span>
+    <span id="env-badge" class="env-badge" style="display:none"></span>
   </div>
   <div class="header-center">
     <div id="mobile-online" class="mobile-online">
@@ -2266,6 +2276,7 @@ let displayedTimestamps = new Set(); // Track displayed message timestamps to av
 let messageOrder = localStorage.getItem('chat-order') || 'asc'; // 'asc' = oldest first, 'desc' = newest first
 
 let hostname = window.location.host || 'edge-chat-demo.plutolu.workers.dev';
+let envType = 'PROD_ENV_TYPE'; // Replaced at build time: PROD_ENV_TYPE or PREV_ENV_TYPE
 
 // ===== ELEMENTS =====
 const chatMessages = document.getElementById('chat-messages');
@@ -2350,7 +2361,14 @@ function toggleMessageOrder() {
   }
 }
 const roomBadge = document.getElementById('room-badge');
+const envBadge = document.getElementById('env-badge');
 const nameOverlay = document.getElementById('name-overlay');
+
+// Show preview badge if running in preview environment
+if (envType === 'preview') {
+  envBadge.textContent = 'PREVIEW';
+  envBadge.style.display = 'inline';
+}
 const roomOverlay = document.getElementById('room-overlay');
 const shareOverlay = document.getElementById('share-overlay');
 const shareBtn = document.getElementById('share-btn');
@@ -3202,7 +3220,11 @@ async function startRecording() {
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
 
     audioChunks = [];
-    mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+    // Try ogg/opus first (MiniMax supported), fallback to webm/opus, then wav
+    const oggTypes = ['audio/ogg;codecs=opus', 'audio/ogg', 'audio/webm;codecs=opus', 'audio/webm', 'audio/wav'];
+    const mimeType = oggTypes.find(type => MediaRecorder.isTypeSupported(type)) || 'audio/webm';
+    console.log('Using audio mimeType:', mimeType);
+    mediaRecorder = new MediaRecorder(stream, { mimeType });
 
     mediaRecorder.ondataavailable = e => {
       if (e.data.size > 0) {
@@ -3258,9 +3280,13 @@ async function transcribeAudio() {
 
   voiceBtn.classList.add('transcribing');
 
-  const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+  // Determine the actual mimeType used for recording
+  const mimeType = mediaRecorder?.mimeType || 'audio/webm';
+  const ext = mimeType.includes('ogg') ? 'ogg' : mimeType.includes('wav') ? 'wav' : mimeType.includes('mp3') ? 'mp3' : 'webm';
+
+  const audioBlob = new Blob(audioChunks, { type: mimeType });
   const formData = new FormData();
-  formData.append('file', audioBlob, 'recording.webm');
+  formData.append('file', audioBlob, `recording.${ext}`);
   formData.append('model', 'asr-1.0');
   formData.append('response_format', 'json');
   formData.append('stream', 'false');

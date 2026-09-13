@@ -20,6 +20,7 @@ jobs:
         run: |
           sed -i "s/v:AUTO/${{ steps.commit.outputs.hash }}/" src/chat.html
           sed -i "s/const VERSION = \"[0-9a-f]\{7\}\"/const VERSION = \"${{ steps.commit.outputs.hash }}\"/" src/chat.mjs
+          sed -i "s/PROD_ENV_TYPE/prod/g" src/chat.html
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -50,6 +51,7 @@ jobs:
         run: |
           sed -i "s/v:AUTO/${{ steps.commit.outputs.hash }}/" src/chat.html
           sed -i "s/const VERSION = \"[0-9a-f]\{7\}\"/const VERSION = \"${{ steps.commit.outputs.hash }}\"/" src/chat.mjs
+          sed -i "s/PROD_ENV_TYPE/preview/g" src/chat.html
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
