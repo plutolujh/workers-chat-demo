@@ -27,3 +27,9 @@ SHOTSYNC_URL = "https://shotsync.hao123456.cn"
 # Preview environment
 [env.preview]
 name = "edge-chat-demo-preview"
+
+[env.preview.durable_objects]
+bindings = [
+  { name = "rooms", class_name = "ChatRoom" },
+  { name = "limiters", class_name = "RateLimiter" },
+]
