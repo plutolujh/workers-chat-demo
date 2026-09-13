@@ -6,8 +6,9 @@ on:
   workflow_dispatch:
 
 jobs:
-  deploy:
+  deploy-production:
     runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/master'
     steps:
       - uses: actions/checkout@v4
 
@@ -29,15 +30,36 @@ jobs:
         run: npm install -g wrangler
 
       - name: Deploy to Production
-        if: github.ref == 'refs/heads/master'
         run: wrangler deploy
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
 
+  deploy-preview:
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/feature'
+    environment: preview
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Get commit hash
+        id: commit
+        run: echo "hash=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+
+      - name: Update version
+        run: |
+          sed -i "s/v:AUTO/${{ steps.commit.outputs.hash }}/" src/chat.html
+          sed -i "s/const VERSION = \"[0-9a-f]\{7\}\"/const VERSION = \"${{ steps.commit.outputs.hash }}\"/" src/chat.mjs
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Wrangler
+        run: npm install -g wrangler
+
       - name: Deploy to Preview
-        if: github.ref == 'refs/heads/feature'
-        environment: preview
         run: wrangler deploy --env preview
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
