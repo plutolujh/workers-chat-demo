@@ -3220,9 +3220,15 @@ async function startRecording() {
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
 
     audioChunks = [];
-    // Try ogg/opus first (MiniMax supported), fallback to webm/opus, then wav
-    const oggTypes = ['audio/ogg;codecs=opus', 'audio/ogg', 'audio/webm;codecs=opus', 'audio/webm', 'audio/wav'];
-    const mimeType = oggTypes.find(type => MediaRecorder.isTypeSupported(type)) || 'audio/webm';
+    // MiniMax supports: wav, aiff, flac, alac(m4a), mp3, aac, opus, ogg
+    // Use audio/ogg which maps directly to .ogg extension MiniMax accepts
+    const mimeType = MediaRecorder.isTypeSupported('audio/ogg')
+      ? 'audio/ogg'
+      : MediaRecorder.isTypeSupported('audio/opus')
+        ? 'audio/opus'
+        : MediaRecorder.isTypeSupported('audio/wav')
+          ? 'audio/wav'
+          : 'audio/webm';
     console.log('Using audio mimeType:', mimeType);
     mediaRecorder = new MediaRecorder(stream, { mimeType });
 
@@ -3280,9 +3286,9 @@ async function transcribeAudio() {
 
   voiceBtn.classList.add('transcribing');
 
-  // Determine the actual mimeType used for recording
-  const mimeType = mediaRecorder?.mimeType || 'audio/webm';
-  const ext = mimeType.includes('ogg') ? 'ogg' : mimeType.includes('wav') ? 'wav' : mimeType.includes('mp3') ? 'mp3' : 'webm';
+  // Get the mimeType that was actually used during recording
+  const recordedMimeType = mediaRecorder?.mimeType || 'audio/ogg';
+  const ext = recordedMimeType.includes('ogg') ? 'ogg' : recordedMimeType.includes('opus') ? 'opus' : recordedMimeType.includes('wav') ? 'wav' : 'ogg';
 
   const audioBlob = new Blob(audioChunks, { type: mimeType });
   const formData = new FormData();
