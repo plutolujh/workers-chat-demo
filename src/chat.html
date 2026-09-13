@@ -636,6 +636,103 @@ body {
   text-decoration: underline;
 }
 
+/* ===== QUOTE / REPLY ===== */
+.msg-quote-btn {
+  opacity: 0;
+  padding: 2px 6px;
+  font-size: 11px;
+  color: var(--text-muted);
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: opacity 0.2s, background 0.2s;
+}
+
+.msg:hover .msg-quote-btn {
+  opacity: 1;
+}
+
+.msg-quote-btn:hover {
+  background: var(--surface-active);
+  color: var(--accent);
+}
+
+/* Quote display in input area */
+.quote-area {
+  display: none;
+  background: var(--surface-hover);
+  border-radius: 8px;
+  padding: 8px 12px;
+  margin-bottom: 8px;
+  position: relative;
+}
+
+.quote-area.active {
+  display: block;
+}
+
+.quote-area-header {
+  font-size: 11px;
+  color: var(--accent);
+  margin-bottom: 4px;
+}
+
+.quote-area-content {
+  font-size: 13px;
+  color: var(--text-muted);
+  max-height: 60px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.quote-area-close {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 18px;
+  height: 18px;
+  border: none;
+  background: var(--surface-active);
+  border-radius: 50%;
+  font-size: 10px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+}
+
+.quote-area-close:hover {
+  background: var(--accent);
+  color: #fff;
+}
+
+/* Quote in message */
+.msg-quote {
+  font-size: 12px;
+  color: var(--text-muted);
+  padding: 6px 10px;
+  background: var(--surface-hover);
+  border-left: 2px solid var(--accent);
+  border-radius: 4px;
+  margin-bottom: 6px;
+}
+
+.msg-quote-name {
+  color: var(--accent);
+  font-weight: 500;
+  margin-right: 4px;
+}
+
+.msg-quote-text {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
 /* ===== IMAGE PREVIEW ===== */
 .image-preview {
   position: relative;
@@ -2131,6 +2228,11 @@ button:focus-visible {
 <main class="main">
   <div class="chat-panel">
     <div class="input-area">
+      <div id="quote-area" class="quote-area">
+        <div class="quote-area-header" id="quote-area-header"></div>
+        <div class="quote-area-content" id="quote-area-content"></div>
+        <button class="quote-area-close" id="quote-area-close">✕</button>
+      </div>
       <div id="image-preview" class="image-preview" style="display:none">
         <img id="preview-img" src="" alt="Preview">
         <span id="preview-file" style="display:none;font-size:12px;color:#aaa;max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span>
@@ -2355,6 +2457,9 @@ let messageOrder = localStorage.getItem('chat-order') || 'asc'; // 'asc' = oldes
 let hostname = window.location.host || 'edge-chat-demo.plutolu.workers.dev';
 let envType = 'PROD_ENV_TYPE'; // Replaced at build time: PROD_ENV_TYPE or PREV_ENV_TYPE
 
+// Quote/Reply state
+let quotedMsg = null; // { id, name, text }
+
 // ===== ELEMENTS =====
 const chatMessages = document.getElementById('chat-messages');
 const chatInput = document.getElementById('chat-input');
@@ -2365,6 +2470,10 @@ const emojiGrid = document.getElementById('emoji-grid');
 const rosterList = document.getElementById('roster-list');
 const rosterCount = document.getElementById('roster-count');
 const orderToggle = document.getElementById('order-toggle');
+const quoteArea = document.getElementById('quote-area');
+const quoteAreaHeader = document.getElementById('quote-area-header');
+const quoteAreaContent = document.getElementById('quote-area-content');
+const quoteAreaClose = document.getElementById('quote-area-close');
 
 // Initialize order toggle UI
 if (orderToggle) {
@@ -3196,6 +3305,26 @@ shareBtn.addEventListener('click', () => {
   shareOverlay.classList.remove('hidden');
 });
 
+// ===== QUOTE / REPLY =====
+quoteAreaClose.addEventListener('click', () => {
+  clearQuote();
+});
+
+function setQuote(msgId, msgName, msgText) {
+  quotedMsg = { id: msgId, name: msgName, text: msgText };
+  quoteAreaHeader.textContent = currentLang === 'zh' ? `回复 ${msgName}：` : `Reply to ${msgName}:`;
+  quoteAreaContent.textContent = msgText;
+  quoteArea.classList.add('active');
+  chatInput.focus();
+}
+
+function clearQuote() {
+  quotedMsg = null;
+  quoteArea.classList.remove('active');
+  quoteAreaHeader.textContent = '';
+  quoteAreaContent.textContent = '';
+}
+
 // ===== SEND MESSAGE =====
 let sendRetryTimer = null;
 let isUploading = false; // Track if upload is in progress
@@ -3221,9 +3350,10 @@ function sendMessage() {
       const payload = JSON.stringify({
         message: text,
         image: selectedImageData,
-        fileName: selectedFileName
+        fileName: selectedFileName,
+        quote: quotedMsg ? { id: quotedMsg.id, name: quotedMsg.name, text: quotedMsg.text } : null
       });
-      console.log('Sending payload:', { image: selectedImageData ? selectedImageData.slice(0, 80) : null, fileName: selectedFileName, hasWebSocket: !!currentWebSocket });
+      console.log('Sending payload:', { image: selectedImageData ? selectedImageData.slice(0, 80) : null, fileName: selectedFileName, hasWebSocket: !!currentWebSocket, quote: quotedMsg });
       currentWebSocket.send(payload);
       chatInput.value = '';
       selectedImageData = null;
@@ -3232,6 +3362,7 @@ function sendMessage() {
       previewImg.src = '';
       previewImg.style.display = 'none';
       showProgress(false);
+      clearQuote(); // Clear quote after sending
       console.log('Message sent successfully');
     } catch (err) {
       console.error('Send error:', err);
@@ -3847,7 +3978,7 @@ function joinWS() {
       data.messages.forEach(msgStr => {
         const msg = JSON.parse(msgStr);
         console.log('DEBUG history timestamp:', msg.timestamp, 'Date.now():', Date.now(), 'new Date(timestamp):', new Date(msg.timestamp).toLocaleTimeString());
-        addMsgOld(msg.name, msg.message, '', msg.image, msg.timestamp, msg.fileName);
+        addMsgOld(msg.name, msg.message, '', msg.image, msg.timestamp, msg.fileName, msg.quote || null);
       });
 
       // When desc order, maintain scroll position after adding messages
@@ -3868,10 +3999,10 @@ function joinWS() {
         updateLoadMoreButton();
       }
     } else if (data.timestamp !== undefined) {
-      console.log('DEBUG msg received:', { timestamp: data.timestamp, image: data.image, fileName: data.fileName, inSet: displayedTimestamps.has(data.timestamp) });
+      console.log('DEBUG msg received:', { timestamp: data.timestamp, image: data.image, fileName: data.fileName, inSet: displayedTimestamps.has(data.timestamp), quote: data.quote });
       if (!displayedTimestamps.has(data.timestamp)) {
         console.log('DEBUG adding message:', { name: data.name, text: data.message, image: data.image ? data.image.slice(0, 80) : null, fileName: data.fileName });
-        addMsg(data.name, data.message, '', data.image, data.timestamp, false, data.fileName); // new message always appends
+        addMsg(data.name, data.message, '', data.image, data.timestamp, false, data.fileName, data.quote); // new message always appends
         displayedTimestamps.add(data.timestamp);
       } else {
         console.log('DEBUG message already displayed, skipping');
@@ -3926,7 +4057,7 @@ function recallSelectedMsg() {
   toggleRecallMode();
 }
 
-function addMsg(name, text, type = '', image = null, timestamp = null, isHistory = false, fileName = '') {
+function addMsg(name, text, type = '', image = null, timestamp = null, isHistory = false, fileName = '', quote = null) {
   const isOwn = name === username;
   const div = document.createElement('div');
   div.className = 'msg' + (type ? ' ' + type : '') + (isOwn ? ' own' : '');
@@ -4039,11 +4170,22 @@ function addMsg(name, text, type = '', image = null, timestamp = null, isHistory
     // Recall button only shown when selected in recall mode
     const recallBtn = isOwn && timestamp ? `<button class="msg-recall-btn" style="display:none;margin-top:4px;font-size:11px;padding:2px 8px;background:#666;color:#fff;border:none;border-radius:4px;cursor:pointer;text-align:center;width:auto;min-width:32px">${currentLang==='zh'?'↩️':'↩️'}</button>` : '';
 
+    // Quote button - shown on hover
+    const quoteBtn = timestamp ? `<button class="msg-quote-btn" data-id="${timestamp}" data-name="${esc(displayName)}" data-text="${esc(text || '')}">${currentLang === 'zh' ? '↩️ 回复' : '↩️ Reply'}</button>` : '';
+
     // Collapsible long text messages
     const COLLAPSE_THRESHOLD = 300;
     const isLongText = text && text.length > COLLAPSE_THRESHOLD;
     const textHtml = text ? `<div class="msg-text${isLongText ? ' collapsible collapsed' : ''}"${isLongText ? ` data-full-text="${esc(text)}" data-collapsed="true"` : ''}>${esc(text)}</div>` : '';
     const expandBtn = isLongText ? `<button class="msg-expand-btn">${currentLang === 'zh' ? '展开 ▼' : 'Expand ▼'}</button>` : '';
+
+    // Quote display
+    const quoteHtml = quote ? `
+      <div class="msg-quote">
+        <span class="msg-quote-name">${esc(quote.name)}:</span>
+        <span class="msg-quote-text">${esc(quote.text)}</span>
+      </div>
+    ` : '';
 
     div.innerHTML = `
       <div class="msg-avatar">${avatarContent}</div>
@@ -4051,7 +4193,9 @@ function addMsg(name, text, type = '', image = null, timestamp = null, isHistory
         <div class="msg-header">
           <span class="msg-name">${esc(displayName)}</span>
           <span class="msg-time">${time}</span>
+          ${quoteBtn}
         </div>
+        ${quoteHtml}
         ${textHtml}
         ${expandBtn}
         ${mediaHtml}
@@ -4100,6 +4244,18 @@ function addMsg(name, text, type = '', image = null, timestamp = null, isHistory
       }
     }
 
+    // Quote button handler
+    const qBtn = div.querySelector('.msg-quote-btn');
+    if (qBtn) {
+      qBtn.onclick = (e) => {
+        e.stopPropagation();
+        const msgId = qBtn.dataset.id;
+        const msgName = qBtn.dataset.name;
+        const msgText = qBtn.dataset.text;
+        setQuote(msgId, msgName, msgText);
+      };
+    }
+
     // Lazy load images using Intersection Observer
     if (image) {
       const img = div.querySelector('.msg-image');
@@ -4137,7 +4293,7 @@ function addMsg(name, text, type = '', image = null, timestamp = null, isHistory
 // Add old messages (for load more)
 // asc: insert new messages between button and existing oldest message
 // desc: insert new messages at top (newest at top, button at bottom)
-function addMsgOld(name, text, type = '', image = null, timestamp = null, fileName = '') {
+function addMsgOld(name, text, type = '', image = null, timestamp = null, fileName = '', quote = null) {
   const isOwn = name === username;
   const div = document.createElement('div');
   div.className = 'msg' + (type ? ' ' + type : '') + (isOwn ? ' own' : '');
@@ -4198,6 +4354,13 @@ function addMsgOld(name, text, type = '', image = null, timestamp = null, fileNa
       }
     }
     const recallBtn = isOwn && timestamp ? `<button class="msg-recall-btn" style="display:none;margin-top:4px;font-size:11px;padding:2px 8px;background:#666;color:#fff;border:none;border-radius:4px;cursor:pointer;text-align:center;width:auto;min-width:32px">${currentLang==='zh'?'↩️':'↩️'}</button>` : '';
+    const quoteBtn = timestamp ? `<button class="msg-quote-btn" data-id="${timestamp}" data-name="${esc(displayName)}" data-text="${esc(text || '')}">${currentLang === 'zh' ? '↩️ 回复' : '↩️ Reply'}</button>` : '';
+    const quoteHtml = quote ? `
+      <div class="msg-quote">
+        <span class="msg-quote-name">${esc(quote.name)}:</span>
+        <span class="msg-quote-text">${esc(quote.text)}</span>
+      </div>
+    ` : '';
 
     div.innerHTML = `
       <div class="msg-avatar">${avatarContent}</div>
@@ -4205,12 +4368,26 @@ function addMsgOld(name, text, type = '', image = null, timestamp = null, fileNa
         <div class="msg-header">
           <span class="msg-name">${esc(displayName)}</span>
           <span class="msg-time">${time}</span>
+          ${quoteBtn}
         </div>
+        ${quoteHtml}
         ${text ? `<div class="msg-text">${esc(text)}</div>` : ''}
         ${mediaHtml}
         ${recallBtn}
       </div>
     `;
+
+    // Quote button handler
+    const qBtn = div.querySelector('.msg-quote-btn');
+    if (qBtn) {
+      qBtn.onclick = (e) => {
+        e.stopPropagation();
+        const msgId = qBtn.dataset.id;
+        const msgName = qBtn.dataset.name;
+        const msgText = qBtn.dataset.text;
+        setQuote(msgId, msgName, msgText);
+      };
+    }
   }
 
   const loadMoreBtn = document.getElementById('load-more-btn');
