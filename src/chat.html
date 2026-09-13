@@ -3311,11 +3311,13 @@ quoteAreaClose.addEventListener('click', () => {
 });
 
 function setQuote(msgId, msgName, msgText) {
+  console.log('setQuote called:', { msgId, msgName, msgText });
   quotedMsg = { id: msgId, name: msgName, text: msgText };
   quoteAreaHeader.textContent = currentLang === 'zh' ? `回复 ${msgName}：` : `Reply to ${msgName}:`;
   quoteAreaContent.textContent = msgText;
   quoteArea.classList.add('active');
   chatInput.focus();
+  console.log('quotedMsg after setQuote:', quotedMsg);
 }
 
 function clearQuote() {
@@ -3353,7 +3355,7 @@ function sendMessage() {
         fileName: selectedFileName,
         quote: quotedMsg ? { id: quotedMsg.id, name: quotedMsg.name, text: quotedMsg.text } : null
       });
-      console.log('Sending payload:', { image: selectedImageData ? selectedImageData.slice(0, 80) : null, fileName: selectedFileName, hasWebSocket: !!currentWebSocket, quote: quotedMsg });
+      console.log('Sending payload:', { text, image: selectedImageData ? selectedImageData.slice(0, 80) : null, fileName: selectedFileName, hasWebSocket: !!currentWebSocket, quote: quotedMsg, payloadQuote: quotedMsg ? { id: quotedMsg.id, name: quotedMsg.name, text: quotedMsg.text } : null });
       currentWebSocket.send(payload);
       chatInput.value = '';
       selectedImageData = null;
