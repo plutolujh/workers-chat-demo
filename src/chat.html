@@ -3246,12 +3246,12 @@ async function startRecording() {
     voiceStatus.textContent = currentLang === 'zh' ? '🔴 录音中...' : '🔴 Recording...';
     voiceStatus.classList.remove('error');
 
-    // Auto-stop after 60 seconds
+    // Auto-stop after 5 minutes (300 seconds) - API limit is 500 seconds
     recordingTimeout = setTimeout(() => {
       if (isRecording) {
         stopRecording();
       }
-    }, 60000);
+    }, 300000);
 
   } catch (err) {
     console.error('Microphone access error:', err);
