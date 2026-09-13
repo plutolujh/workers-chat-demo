@@ -3380,23 +3380,18 @@ async function transcribeAudio() {
     const result = await response.json();
     console.log('ASR response:', result);
 
-    if (result.text) {
-      const transcript = result.text.trim();
-      if (transcript) {
-        // Append to existing input or replace
-        if (chatInput.value.trim()) {
-          chatInput.value += ' ' + transcript;
-        } else {
-          chatInput.value = transcript;
-        }
-        chatInput.dispatchEvent(new Event('input')); // Trigger auto-resize
-        voiceStatus.textContent = currentLang === 'zh' ? '✅ 转写完成' : '✅ Transcribed';
+    const transcript = (result.text || '').trim();
+    if (transcript) {
+      // Append to existing input or replace
+      if (chatInput.value.trim()) {
+        chatInput.value += ' ' + transcript;
       } else {
-        voiceStatus.textContent = currentLang === 'zh' ? '⚠️ 未识别到语音' : '⚠️ No speech detected';
+        chatInput.value = transcript;
       }
+      chatInput.dispatchEvent(new Event('input')); // Trigger auto-resize
+      voiceStatus.textContent = currentLang === 'zh' ? '✅ 转写完成' : '✅ Transcribed';
     } else {
-      console.error('ASR result without text:', result);
-      throw new Error('Invalid response format: ' + JSON.stringify(result));
+      voiceStatus.textContent = currentLang === 'zh' ? '⚠️ 未识别到语音' : '⚠️ No speech detected';
     }
 
   } catch (err) {
