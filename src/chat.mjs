@@ -306,6 +306,61 @@ async function handleApiRequest(path, request, env) {
       return roomObject.fetch(newUrl, request);
     }
 
+    case "asr": {
+      // POST /api/asr - proxy audio to MiniMax ASR API
+      if (request.method !== "POST") {
+        return new Response("Method not allowed", {status: 405});
+      }
+
+      const asrApiKey = env.MINIMAX_ASR_API_KEY;
+
+      if (!asrApiKey) {
+        return new Response(JSON.stringify({
+          error: { message: "ASR API not configured", type: "server_error" }
+        }), {
+          status: 500,
+          headers: {"Content-Type": "application/json"}
+        });
+      }
+
+      try {
+        // Forward the audio to MiniMax ASR API
+        const miniMaxUrl = "https://api.minimaxi.com/v1/speech_to_text";
+
+        const form = await request.formData();
+
+        const miniMaxResponse = await fetch(miniMaxUrl, {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${asrApiKey}`,
+            "Accept": "application/json"
+          },
+          body: form
+        });
+
+        const result = await miniMaxResponse.json();
+
+        if (!miniMaxResponse.ok) {
+          return new Response(JSON.stringify({ error: result.error || { message: "ASR failed" } }), {
+            status: miniMaxResponse.status,
+            headers: {"Content-Type": "application/json"}
+          });
+        }
+
+        return new Response(JSON.stringify(result), {
+          headers: {"Content-Type": "application/json"}
+        });
+      } catch (err) {
+        console.error("ASR error:", err);
+        return new Response(JSON.stringify({
+          error: { message: err.message, type: "server_error" }
+        }), {
+          status: 500,
+          headers: {"Content-Type": "application/json"}
+        });
+      }
+    }
+
     default:
       return new Response("Not found", {status: 404});
   }
