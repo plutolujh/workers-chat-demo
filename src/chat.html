@@ -3120,15 +3120,15 @@ document.addEventListener('click', e => {
       return;
     }
 
-    // Handle Office files - download with progress (direct download for better iOS compatibility)
+    // Handle Office files - open in Office Online viewer
     const officeWrapper = e.target.closest('.msg-office-wrapper');
     if (officeWrapper) {
       e.preventDefault();
       e.stopPropagation();
       const url = officeWrapper.dataset.officeUrl;
-      const fileName = officeWrapper.dataset.fileName;
       if (!url) return;
-      downloadFileWithProgress(url, fileName, officeWrapper);
+      const officeViewUrl = 'https://view.officeapps.live.com/op/view.aspx?src=' + encodeURIComponent(url);
+      window.open(officeViewUrl, '_blank');
       return;
     }
 
