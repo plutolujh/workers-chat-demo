@@ -2834,42 +2834,52 @@ imageInput.addEventListener('change', async e => {
     let blob, filename;
     if (isVideo) {
       console.log('VIDEO_BRANCH: Processing video file', { name: file.name, size: file.size, type: file.type });
-      // Upload video file directly with progress
-      previewFile.style.display = 'inline';
-      previewFile.textContent = '🎬 ' + file.name;
-      showProgress(true, 0, currentLang === 'zh' ? '准备上传视频...' : 'Preparing video...');
-      
-      const videoResult = await uploadImage(
-        file, 
-        file.name,
-        (percent, loaded, total) => {
-          showProgress(true, percent, `${currentLang === 'zh' ? '上传视频' : 'Uploading video'}: ${percent}%`);
-        }
-      );
-      
-      // Try to generate and upload thumbnail
-      let videoWithThumb = videoResult.url;
       try {
-        showProgress(true, 0, currentLang === 'zh' ? '生成缩略图...' : 'Generating thumbnail...');
-        const thumbBlob = await generateVideoThumbnail(file);
-        showProgress(true, 50, currentLang === 'zh' ? '上传缩略图...' : 'Uploading thumbnail...');
-        const thumbFilename = file.name.replace(/\.[^.]+$/, '') + '_thumb.jpg';
-        const thumbResult = await uploadImage(thumbBlob, thumbFilename);
-        videoWithThumb = thumbResult.url + '::VIDEO::' + videoResult.url;
-        console.log('Video upload success:', { videoUrl: videoResult.url, thumbUrl: thumbResult.url, combined: videoWithThumb });
-      } catch (thumbErr) {
-        console.warn('Thumbnail generation failed, using video without thumbnail:', thumbErr);
-        // Fallback: just use video URL without thumbnail
-        videoWithThumb = videoResult.url;
-        console.log('Video without thumbnail:', { videoUrl: videoResult.url });
+        // Upload video file directly with progress
+        previewFile.style.display = 'inline';
+        previewFile.textContent = '🎬 ' + file.name;
+        showProgress(true, 0, currentLang === 'zh' ? '准备上传视频...' : 'Preparing video...');
+
+        const videoResult = await uploadImage(
+          file,
+          file.name,
+          (percent, loaded, total) => {
+            showProgress(true, percent, `${currentLang === 'zh' ? '上传视频' : 'Uploading video'}: ${percent}%`);
+          }
+        );
+        console.log('Video upload response:', videoResult);
+
+        // Try to generate and upload thumbnail
+        let videoWithThumb = videoResult.url;
+        try {
+          showProgress(true, 0, currentLang === 'zh' ? '生成缩略图...' : 'Generating thumbnail...');
+          const thumbBlob = await generateVideoThumbnail(file);
+          showProgress(true, 50, currentLang === 'zh' ? '上传缩略图...' : 'Uploading thumbnail...');
+          const thumbFilename = file.name.replace(/\.[^.]+$/, '') + '_thumb.jpg';
+          const thumbResult = await uploadImage(thumbBlob, thumbFilename);
+          videoWithThumb = thumbResult.url + '::VIDEO::' + videoResult.url;
+          console.log('Video upload success:', { videoUrl: videoResult.url, thumbUrl: thumbResult.url, combined: videoWithThumb });
+        } catch (thumbErr) {
+          console.warn('Thumbnail generation failed, using video without thumbnail:', thumbErr);
+          // Fallback: just use video URL without thumbnail
+          videoWithThumb = videoResult.url;
+          console.log('Video without thumbnail:', { videoUrl: videoResult.url });
+        }
+
+        // Store video URL
+        selectedImageData = videoWithThumb;
+        selectedFileName = file.name;
+        previewFile.textContent = '🎬 ' + file.name + ' ✓';
+        showProgress(false);
+        console.log('UPLOAD_COMPLETE_VIDEO:', { selectedImageData: selectedImageData ? selectedImageData.slice(0, 80) : null, selectedFileName });
+      } catch (uploadErr) {
+        console.error('Video upload error:', uploadErr);
+        showUploadError(currentLang === 'zh' ? '视频上传失败: ' + uploadErr.message : 'Video upload failed: ' + uploadErr.message);
+        showProgress(false);
+        isUploading = false;
+        imageInput.value = '';
+        return;
       }
-      
-      // Store video URL
-      selectedImageData = videoWithThumb;
-      selectedFileName = file.name;
-      previewFile.textContent = '🎬 ' + file.name + ' ✓';
-      showProgress(false);
-      console.log('UPLOAD_COMPLETE_VIDEO:', { selectedImageData: selectedImageData ? selectedImageData.slice(0, 80) : null, selectedFileName });
     } else if (isImage) {
       // Compress image
       previewImg.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
