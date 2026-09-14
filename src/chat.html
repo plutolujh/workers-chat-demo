@@ -3946,6 +3946,14 @@ function startChat() {
 function downloadFileWithProgress(url, fileName, wrapper) {
   const progressEl = wrapper.querySelector('.msg-file-progress');
   const progressBar = wrapper.querySelector('.msg-file-progress-bar');
+
+  // iOS Safari: open URL directly instead of blob download
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+  if (isIOS) {
+    window.open(url, '_blank');
+    return;
+  }
+
   if (!progressEl || !progressBar) return;
 
   progressEl.style.display = 'block';
