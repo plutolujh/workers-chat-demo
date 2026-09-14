@@ -3072,17 +3072,30 @@ document.addEventListener('click', e => {
       return;
     }
 
-    // Handle Office files - open in new tab
+    // Handle Office files - download with progress
     const officeWrapper = e.target.closest('.msg-office-wrapper');
     if (officeWrapper) {
       e.preventDefault();
       e.stopPropagation();
       const url = officeWrapper.dataset.officeUrl;
+      const fileName = officeWrapper.dataset.fileName;
       if (!url) return;
-      window.open('https://view.officeapps.live.com/op/view.aspx?src=' + encodeURIComponent(url), '_blank');
+      downloadFileWithProgress(url, fileName, officeWrapper);
       return;
     }
-    
+
+    // Handle other file attachments - download with progress
+    const fileWrapper = e.target.closest('.msg-file-wrapper');
+    if (fileWrapper) {
+      e.preventDefault();
+      e.stopPropagation();
+      const url = fileWrapper.dataset.fileUrl;
+      const fileName = fileWrapper.dataset.fileName;
+      if (!url) return;
+      downloadFileWithProgress(url, fileName, fileWrapper);
+      return;
+    }
+
     // Handle image click
     if (!img) return;
     const url = img.dataset.full || img.dataset.src || img.src;
@@ -3929,6 +3942,45 @@ function startChat() {
     closeBtn.classList.remove('visible');
   };
 
+// Download file with progress bar
+function downloadFileWithProgress(url, fileName, wrapper) {
+  const progressEl = wrapper.querySelector('.msg-file-progress');
+  const progressBar = wrapper.querySelector('.msg-file-progress-bar');
+  if (!progressEl || !progressBar) return;
+
+  progressEl.style.display = 'block';
+  progressBar.style.width = '0%';
+
+  const xhr = new XMLHttpRequest();
+  xhr.open('GET', url, true);
+  xhr.responseType = 'blob';
+  xhr.onprogress = (ev) => {
+    if (ev.lengthComputable) {
+      progressBar.style.width = (ev.loaded / ev.total * 100) + '%';
+    }
+  };
+  xhr.onload = () => {
+    progressBar.style.width = '100%';
+    if (xhr.status === 200) {
+      const blob = xhr.response;
+      const blobUrl = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = blobUrl;
+      a.download = fileName || 'download';
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+    }
+    setTimeout(() => {
+      progressEl.style.display = 'none';
+      progressBar.style.width = '0%';
+    }, 1000);
+  };
+  xhr.onerror = () => {
+    progressEl.style.display = 'none';
+    progressBar.style.width = '0%';
+  };
+  xhr.send();
+}
 
 
   joinWS();
@@ -4178,19 +4230,28 @@ function addMsg(name, text, type = '', image = null, timestamp = null, isHistory
           </div>
         `;
       } else if (isDocFile(fileName) || isXlsxFile(fileName)) {
-        // Office files - click to view online
+        // Office files - click to download with progress
         const icon = isDocFile(fileName) ? '📝' : '📊';
         mediaHtml = `
-          <div class="msg-office-wrapper" data-office-url="${esc(image)}" style="display:inline-block;margin-top:6px;max-width:100%;">
+          <div class="msg-office-wrapper" data-office-url="${esc(image)}" data-file-name="${esc(fileName)}" style="display:inline-block;margin-top:6px;max-width:100%;">
             <div class="msg-file" style="cursor:pointer;">
               <span class="msg-file-icon">${icon}</span>
               <span class="msg-file-name">${esc(fileName)}</span>
+              <div class="msg-file-progress" style="display:none;height:4px;background:var(--border);border-radius:2px;margin-top:4px;"><div class="msg-file-progress-bar" style="height:100%;background:var(--primary);border-radius:2px;width:0%;transition:width 0.1s;"></div></div>
             </div>
           </div>
         `;
       } else {
-        // Other file attachment
-        mediaHtml = `<div class="msg-file"><span class="msg-file-icon">${getFileIcon(fileName)}</span><span class="msg-file-name">${esc(fileName)}</span></div>`;
+        // Other file attachment - add progress bar
+        mediaHtml = `
+          <div class="msg-file-wrapper" data-file-url="${esc(image)}" data-file-name="${esc(fileName)}" style="display:inline-block;margin-top:6px;max-width:100%;cursor:pointer;">
+            <div class="msg-file" style="cursor:pointer;">
+              <span class="msg-file-icon">${getFileIcon(fileName)}</span>
+              <span class="msg-file-name">${esc(fileName)}</span>
+              <div class="msg-file-progress" style="display:none;height:4px;background:var(--border);border-radius:2px;margin-top:4px;"><div class="msg-file-progress-bar" style="height:100%;background:var(--primary);border-radius:2px;width:0%;transition:width 0.1s;"></div></div>
+            </div>
+          </div>
+        `;
       }
     }
 
@@ -4377,8 +4438,42 @@ function addMsgOld(name, text, type = '', image = null, timestamp = null, fileNa
         `;
       } else if (isImageFile(fileName)) {
         mediaHtml = `<img class="msg-image" src="${image}" alt="Image">`;
+      } else if (isPDFFile(fileName)) {
+        mediaHtml = `
+          <div class="msg-pdf-wrapper" data-pdf-url="${esc(image)}" style="display:inline-block;margin-top:6px;max-width:100%;">
+            <div class="msg-pdf-preview" style="cursor:pointer;display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--surface-hover);border-radius:8px;border:1px solid var(--border);max-width:280px;">
+              <span style="font-size:16px;">📕</span>
+              <div style="flex:1;min-width:0;">
+                <div style="font-size:12px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(fileName)}</div>
+              </div>
+              <span class="pdf-toggle" style="font-size:12px;color:var(--text-muted);">▾</span>
+            </div>
+            <div class="msg-pdf-embed" style="display:none;margin-top:8px;border-radius:8px;overflow:hidden;border:1px solid var(--border);">
+              <iframe src="${esc(image)}" style="width:100%;height:500px;border:none;display:block;background:#fff;" loading="lazy"></iframe>
+            </div>
+          </div>
+        `;
+      } else if (isDocFile(fileName) || isXlsxFile(fileName)) {
+        const icon = isDocFile(fileName) ? '📝' : '📊';
+        mediaHtml = `
+          <div class="msg-office-wrapper" data-office-url="${esc(image)}" data-file-name="${esc(fileName)}" style="display:inline-block;margin-top:6px;max-width:100%;">
+            <div class="msg-file" style="cursor:pointer;">
+              <span class="msg-file-icon">${icon}</span>
+              <span class="msg-file-name">${esc(fileName)}</span>
+              <div class="msg-file-progress" style="display:none;height:4px;background:var(--border);border-radius:2px;margin-top:4px;"><div class="msg-file-progress-bar" style="height:100%;background:var(--primary);border-radius:2px;width:0%;transition:width 0.1s;"></div></div>
+            </div>
+          </div>
+        `;
       } else {
-        mediaHtml = `<div class="msg-file"><span class="msg-file-icon">${getFileIcon(fileName)}</span><span class="msg-file-name">${esc(fileName)}</span></div>`;
+        mediaHtml = `
+          <div class="msg-file-wrapper" data-file-url="${esc(image)}" data-file-name="${esc(fileName)}" style="display:inline-block;margin-top:6px;max-width:100%;cursor:pointer;">
+            <div class="msg-file" style="cursor:pointer;">
+              <span class="msg-file-icon">${getFileIcon(fileName)}</span>
+              <span class="msg-file-name">${esc(fileName)}</span>
+              <div class="msg-file-progress" style="display:none;height:4px;background:var(--border);border-radius:2px;margin-top:4px;"><div class="msg-file-progress-bar" style="height:100%;background:var(--primary);border-radius:2px;width:0%;transition:width 0.1s;"></div></div>
+            </div>
+          </div>
+        `;
       }
     }
     const recallBtn = isOwn && timestamp ? `<button class="msg-recall-btn" style="display:none;margin-top:4px;font-size:11px;padding:2px 8px;background:#666;color:#fff;border:none;border-radius:4px;cursor:pointer;text-align:center;width:auto;min-width:32px">${currentLang==='zh'?'↩️':'↩️'}</button>` : '';
