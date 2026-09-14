@@ -3140,6 +3140,8 @@ document.addEventListener('click', e => {
         }
       }
       const officeViewUrl = 'https://view.officeapps.live.com/op/view.aspx?src=' + encodeURIComponent(url);
+      console.log('Office Online URL:', officeViewUrl);
+      console.log('Original file URL:', officeWrapper.dataset.officeUrl);
       // Use window.open for better mobile compatibility
       window.open(officeViewUrl, '_blank');
       return;
