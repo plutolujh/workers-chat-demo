@@ -2825,8 +2825,11 @@ imageInput.addEventListener('change', async e => {
   showProgress(false);
 
   const isImage = file.type.startsWith('image/') && !file.type.includes('svg');
-  const isVideo = file.type.startsWith('video/');
-  console.log('FILE_TYPE_CHECK:', { isImage, isVideo, type: file.type });
+  // Also check by extension for iPhone videos (heic, heiv, mov, mp4)
+  const ext = file.name.split('.').pop().toLowerCase();
+  const videoExts = ['mp4', 'mov', 'm4v', 'avi', 'webm', 'hevc', 'heic', 'heif', 'mkv'];
+  const isVideo = file.type.startsWith('video/') || videoExts.includes(ext);
+  console.log('FILE_TYPE_CHECK:', { isImage, isVideo, type: file.type, ext });
   try {
     let blob, filename;
     if (isVideo) {
