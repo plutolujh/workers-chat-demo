@@ -3131,16 +3131,16 @@ document.addEventListener('click', e => {
       // Office Online cannot follow HMAC-signed URLs, so use /pub/ instead
       const shareMatch = url.match(/^(https?:\/\/[^\/]+\/share\/[^?]+)\?(.+)$/);
       if (shareMatch) {
-        const sharePath = shareMatch[1]; // e.g. https://shotsync.hao123456.cn/share/<id>
+        const sharePath = shareMatch[1];
         const params = new URLSearchParams(shareMatch[2]);
         const roomId = params.get('room');
         if (roomId) {
-          // Extract just the id from /share/<id>
           const id = sharePath.split('/share/')[1];
           url = `${sharePath.split('/share/')[0]}/pub/${id}?room=${roomId}`;
         }
       }
       const officeViewUrl = 'https://view.officeapps.live.com/op/view.aspx?src=' + encodeURIComponent(url);
+      // Use window.open for better mobile compatibility
       window.open(officeViewUrl, '_blank');
       return;
     }
