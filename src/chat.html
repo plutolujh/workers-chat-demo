@@ -3072,7 +3072,7 @@ document.addEventListener('click', e => {
       return;
     }
 
-    // Handle Office files - download with progress
+    // Handle Office files - download with progress (direct download for better iOS compatibility)
     const officeWrapper = e.target.closest('.msg-office-wrapper');
     if (officeWrapper) {
       e.preventDefault();
