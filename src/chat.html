@@ -3127,8 +3127,7 @@ document.addEventListener('click', e => {
       e.stopPropagation();
       let url = officeWrapper.dataset.officeUrl;
       if (!url) return;
-      // Convert signed /share/ URL to public /pub/ URL for Office Online
-      // Office Online cannot follow HMAC-signed URLs, so use /pub/ instead
+      // Convert signed /share/ URL to public /pub/ URL
       const shareMatch = url.match(/^(https?:\/\/[^\/]+\/share\/[^?]+)\?(.+)$/);
       if (shareMatch) {
         const sharePath = shareMatch[1];
@@ -3139,11 +3138,10 @@ document.addEventListener('click', e => {
           url = `${sharePath.split('/share/')[0]}/pub/${id}?room=${roomId}`;
         }
       }
-      const officeViewUrl = 'https://view.officeapps.live.com/op/view.aspx?src=' + encodeURIComponent(url);
-      console.log('Office Online URL:', officeViewUrl);
-      console.log('Original file URL:', officeWrapper.dataset.officeUrl);
-      // Use window.open for better mobile compatibility
-      window.open(officeViewUrl, '_blank');
+      // Use Google Docs Viewer for better mobile compatibility
+      const viewerUrl = 'https://docs.google.com/gview?url=' + encodeURIComponent(url) + '&embedded=true';
+      console.log('Viewer URL:', viewerUrl);
+      window.open(viewerUrl, '_blank');
       return;
     }
 
