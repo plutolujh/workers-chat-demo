@@ -3140,8 +3140,12 @@ document.addEventListener('click', e => {
       }
       // Use Microsoft Office Online viewer
       const officeViewUrl = 'https://view.officeapps.live.com/op/view.aspx?src=' + encodeURIComponent(url);
-      console.log('Office Online URL:', officeViewUrl);
-      window.open(officeViewUrl, '_blank');
+      // Try window.open first (desktop), fallback to location.href for mobile
+      const opened = window.open(officeViewUrl, '_blank');
+      if (!opened || opened === null) {
+        // Mobile Safari may block window.open, use location instead
+        location.href = officeViewUrl;
+      }
       return;
     }
 
