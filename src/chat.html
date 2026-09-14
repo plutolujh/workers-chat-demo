@@ -2827,15 +2827,17 @@ imageInput.addEventListener('change', async e => {
   const isImage = file.type.startsWith('image/') && !file.type.includes('svg');
   // Also check by extension for iPhone videos (heic, heiv, mov, mp4)
   const ext = file.name.split('.').pop().toLowerCase();
-  const videoExts = ['mp4', 'mov', 'm4v', 'avi', 'webm', 'hevc', 'heic', 'heif', 'mkv'];
+  const videoExts = ['mp4', 'mov', 'm4v', 'avi', 'webm', 'hevc', 'heic', 'heif', 'mkv', '3gp', 'qt'];
   const isVideo = file.type.startsWith('video/') || videoExts.includes(ext);
-  console.log('FILE_TYPE_CHECK:', { isImage, isVideo, type: file.type, ext });
+  console.log('FILE_TYPE_CHECK:', { isImage, isVideo, type: file.type, ext, name: file.name });
   try {
     let blob, filename;
     if (isVideo) {
+      console.log('VIDEO_BRANCH: Processing video file', { name: file.name, size: file.size, type: file.type });
       // Upload video file directly with progress
       previewFile.style.display = 'inline';
       previewFile.textContent = '🎬 ' + file.name;
+      showProgress(true, 0, currentLang === 'zh' ? '准备上传视频...' : 'Preparing video...');
       
       const videoResult = await uploadImage(
         file, 
