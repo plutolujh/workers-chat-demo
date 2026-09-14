@@ -3139,17 +3139,16 @@ document.addEventListener('click', e => {
           url = `${sharePath.split('/share/')[0]}/pub/${id}?room=${roomId}`;
         }
       }
-      const officeViewUrl = 'https://view.officeapps.live.com/op/view.aspx?src=' + encodeURIComponent(url);
-      // Show debug info in an alert for mobile testing
-      const debugInfo = `File: ${fileName}\nURL: ${officeViewUrl}\n\nPress OK to open, or copy URL.`;
-      if (confirm(debugInfo)) {
-        const opened = window.open(officeViewUrl, '_blank');
-        if (!opened || opened === null) {
-          location.href = officeViewUrl;
-        }
-      } else {
-        prompt('Copy this URL:', officeViewUrl);
+      const isMobile = /Mobile|Android|iPhone|iPad/i.test(navigator.userAgent);
+      const isDocx = fileName.toLowerCase().endsWith('.docx') || fileName.toLowerCase().endsWith('.doc');
+      // On mobile, docx files can't be previewed by Office Online, so download instead
+      if (isMobile && isDocx) {
+        downloadFileWithProgress(url, fileName, officeWrapper);
+        return;
       }
+      // Otherwise use Office Online viewer
+      const officeViewUrl = 'https://view.officeapps.live.com/op/view.aspx?src=' + encodeURIComponent(url);
+      window.open(officeViewUrl, '_blank');
       return;
     }
 
