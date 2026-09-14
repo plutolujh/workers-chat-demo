@@ -4165,6 +4165,17 @@ function addMsg(name, text, type = '', image = null, timestamp = null, isHistory
             </div>
           </div>
         `;
+      } else if (isDocFile(fileName) || isXlsxFile(fileName)) {
+        // Office files - click to view online
+        const icon = isDocFile(fileName) ? '📝' : '📊';
+        mediaHtml = `
+          <div class="msg-office-wrapper" data-office-url="${esc(image)}" style="display:inline-block;margin-top:6px;max-width:100%;">
+            <div class="msg-file" style="cursor:pointer;">
+              <span class="msg-file-icon">${icon}</span>
+              <span class="msg-file-name">${esc(fileName)}</span>
+            </div>
+          </div>
+        `;
       } else {
         // Other file attachment
         mediaHtml = `<div class="msg-file"><span class="msg-file-icon">${getFileIcon(fileName)}</span><span class="msg-file-name">${esc(fileName)}</span></div>`;
