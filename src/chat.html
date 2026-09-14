@@ -3127,6 +3127,10 @@ document.addEventListener('click', e => {
       e.stopPropagation();
       let url = officeWrapper.dataset.officeUrl;
       if (!url) return;
+      const fileName = officeWrapper.dataset.fileName || 'unknown';
+      console.log('=== Office Debug Start ===');
+      console.log('File name:', fileName);
+      console.log('Original URL:', url);
       // Convert signed /share/ URL to public /pub/ URL
       const shareMatch = url.match(/^(https?:\/\/[^\/]+\/share\/[^?]+)\?(.+)$/);
       if (shareMatch) {
@@ -3136,14 +3140,20 @@ document.addEventListener('click', e => {
         if (roomId) {
           const id = sharePath.split('/share/')[1];
           url = `${sharePath.split('/share/')[0]}/pub/${id}?room=${roomId}`;
+          console.log('Converted /pub/ URL:', url);
         }
       }
-      // Use Microsoft Office Online viewer
       const officeViewUrl = 'https://view.officeapps.live.com/op/view.aspx?src=' + encodeURIComponent(url);
+      console.log('Office Online URL:', officeViewUrl);
+      console.log('User Agent:', navigator.userAgent);
+      console.log('Is Mobile:', /Mobile|Android|iPhone|iPad/i.test(navigator.userAgent));
+      console.log('=== Office Debug End ===');
       // Try window.open first (desktop), fallback to location.href for mobile
       const opened = window.open(officeViewUrl, '_blank');
+      console.log('window.open result:', opened);
       if (!opened || opened === null) {
         // Mobile Safari may block window.open, use location instead
+        console.log('Fallback to location.href');
         location.href = officeViewUrl;
       }
       return;
