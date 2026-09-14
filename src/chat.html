@@ -3044,6 +3044,54 @@ viewerWrap.addEventListener('touchmove', e => {
 }, { passive: false });
 viewerWrap.addEventListener('touchend', () => { lastTouchDist = null; });
 
+// Download file with progress bar
+function downloadFileWithProgress(url, fileName, wrapper) {
+  const progressEl = wrapper.querySelector('.msg-file-progress');
+  const progressBar = wrapper.querySelector('.msg-file-progress-bar');
+
+  // iOS Safari: open URL directly instead of blob download
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+  if (isIOS) {
+    window.open(url, '_blank');
+    return;
+  }
+
+  if (!progressEl || !progressBar) return;
+
+  progressEl.style.display = 'block';
+  progressBar.style.width = '0%';
+
+  const xhr = new XMLHttpRequest();
+  xhr.open('GET', url, true);
+  xhr.responseType = 'blob';
+  xhr.onprogress = (ev) => {
+    if (ev.lengthComputable) {
+      progressBar.style.width = (ev.loaded / ev.total * 100) + '%';
+    }
+  };
+  xhr.onload = () => {
+    progressBar.style.width = '100%';
+    if (xhr.status === 200) {
+      const blob = xhr.response;
+      const blobUrl = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = blobUrl;
+      a.download = fileName || 'download';
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+    }
+    setTimeout(() => {
+      progressEl.style.display = 'none';
+      progressBar.style.width = '0%';
+    }, 1000);
+  };
+  xhr.onerror = () => {
+    progressEl.style.display = 'none';
+    progressBar.style.width = '0%';
+  };
+  xhr.send();
+}
+
 // Image in message click to open viewer
 document.addEventListener('click', e => {
   try {
@@ -3941,54 +3989,6 @@ function startChat() {
     thumb.style.display = '';
     closeBtn.classList.remove('visible');
   };
-
-// Download file with progress bar
-function downloadFileWithProgress(url, fileName, wrapper) {
-  const progressEl = wrapper.querySelector('.msg-file-progress');
-  const progressBar = wrapper.querySelector('.msg-file-progress-bar');
-
-  // iOS Safari: open URL directly instead of blob download
-  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-  if (isIOS) {
-    window.open(url, '_blank');
-    return;
-  }
-
-  if (!progressEl || !progressBar) return;
-
-  progressEl.style.display = 'block';
-  progressBar.style.width = '0%';
-
-  const xhr = new XMLHttpRequest();
-  xhr.open('GET', url, true);
-  xhr.responseType = 'blob';
-  xhr.onprogress = (ev) => {
-    if (ev.lengthComputable) {
-      progressBar.style.width = (ev.loaded / ev.total * 100) + '%';
-    }
-  };
-  xhr.onload = () => {
-    progressBar.style.width = '100%';
-    if (xhr.status === 200) {
-      const blob = xhr.response;
-      const blobUrl = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = blobUrl;
-      a.download = fileName || 'download';
-      a.click();
-      setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
-    }
-    setTimeout(() => {
-      progressEl.style.display = 'none';
-      progressBar.style.width = '0%';
-    }, 1000);
-  };
-  xhr.onerror = () => {
-    progressEl.style.display = 'none';
-    progressBar.style.width = '0%';
-  };
-  xhr.send();
-}
 
 
   joinWS();
