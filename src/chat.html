@@ -2687,6 +2687,21 @@ if (langToggle) {
   });
 }
 
+// Helper: convert signed /share/ URL to public /pub/ URL
+function shareToPubUrl(url) {
+  const match = url.match(/^(https?:\/\/[^\/]+\/share\/[^?]+)\?(.+)$/);
+  if (match) {
+    const sharePath = match[1];
+    const params = new URLSearchParams(match[2]);
+    const roomId = params.get('room');
+    if (roomId) {
+      const id = sharePath.split('/share/')[1];
+      return `${sharePath.split('/share/')[0]}/pub/${id}?room=${roomId}`;
+    }
+  }
+  return url;
+}
+
 // ===== INIT =====
 updateI18n();
 updateLangToggle();
@@ -3134,16 +3149,7 @@ document.addEventListener('click', e => {
       if (!url) return;
       const fileName = officeWrapper.dataset.fileName || 'unknown';
       // Convert signed /share/ URL to public /pub/ URL
-      const shareMatch = url.match(/^(https?:\/\/[^\/]+\/share\/[^?]+)\?(.+)$/);
-      if (shareMatch) {
-        const sharePath = shareMatch[1];
-        const params = new URLSearchParams(shareMatch[2]);
-        const roomId = params.get('room');
-        if (roomId) {
-          const id = sharePath.split('/share/')[1];
-          url = `${sharePath.split('/share/')[0]}/pub/${id}?room=${roomId}`;
-        }
-      }
+      url = shareToPubUrl(url);
       const isMobile = /Mobile|Android|iPhone|iPad/i.test(navigator.userAgent);
       const isDocx = fileName.toLowerCase().endsWith('.docx') || fileName.toLowerCase().endsWith('.doc');
       // On mobile, docx files can't be previewed by Office Online, so download instead
@@ -4258,7 +4264,7 @@ function addMsg(name, text, type = '', image = null, timestamp = null, isHistory
               <span class="pdf-toggle" style="font-size:12px;color:var(--text-muted);">▾</span>
             </div>
             <div class="msg-pdf-embed" style="display:none;margin-top:8px;border-radius:8px;overflow:hidden;border:1px solid var(--border);">
-              <iframe src="${esc(image)}" style="width:100%;height:500px;border:none;display:block;background:#fff;" loading="lazy"></iframe>
+              <iframe src="${esc(shareToPubUrl(image))}" style="width:100%;height:500px;border:none;display:block;background:#fff;" loading="lazy"></iframe>
             </div>
           </div>
         `;
@@ -4482,7 +4488,7 @@ function addMsgOld(name, text, type = '', image = null, timestamp = null, fileNa
               <span class="pdf-toggle" style="font-size:12px;color:var(--text-muted);">▾</span>
             </div>
             <div class="msg-pdf-embed" style="display:none;margin-top:8px;border-radius:8px;overflow:hidden;border:1px solid var(--border);">
-              <iframe src="${esc(image)}" style="width:100%;height:500px;border:none;display:block;background:#fff;" loading="lazy"></iframe>
+              <iframe src="${esc(shareToPubUrl(image))}" style="width:100%;height:500px;border:none;display:block;background:#fff;" loading="lazy"></iframe>
             </div>
           </div>
         `;
