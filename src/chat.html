@@ -3125,8 +3125,21 @@ document.addEventListener('click', e => {
     if (officeWrapper) {
       e.preventDefault();
       e.stopPropagation();
-      const url = officeWrapper.dataset.officeUrl;
+      let url = officeWrapper.dataset.officeUrl;
       if (!url) return;
+      // Convert signed /share/ URL to public /pub/ URL for Office Online
+      // Office Online cannot follow HMAC-signed URLs, so use /pub/ instead
+      const shareMatch = url.match(/^(https?:\/\/[^\/]+\/share\/[^?]+)\?(.+)$/);
+      if (shareMatch) {
+        const sharePath = shareMatch[1]; // e.g. https://shotsync.hao123456.cn/share/<id>
+        const params = new URLSearchParams(shareMatch[2]);
+        const roomId = params.get('room');
+        if (roomId) {
+          // Extract just the id from /share/<id>
+          const id = sharePath.split('/share/')[1];
+          url = `${sharePath.split('/share/')[0]}/pub/${id}?room=${roomId}`;
+        }
+      }
       const officeViewUrl = 'https://view.officeapps.live.com/op/view.aspx?src=' + encodeURIComponent(url);
       window.open(officeViewUrl, '_blank');
       return;
