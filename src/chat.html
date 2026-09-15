@@ -2702,6 +2702,27 @@ function shareToPubUrl(url) {
   return url;
 }
 
+// Debounce: delay execution until after delay ms of inactivity
+function debounce(fn, delay = 100) {
+  let timer;
+  return function(...args) {
+    clearTimeout(timer);
+    timer = setTimeout(() => fn.apply(this, args), delay);
+  };
+}
+
+// Throttle: execute at most once per delay ms
+function throttle(fn, delay = 100) {
+  let last = 0;
+  return function(...args) {
+    const now = Date.now();
+    if (now - last >= delay) {
+      last = now;
+      fn.apply(this, args);
+    }
+  };
+}
+
 // ===== INIT =====
 updateI18n();
 updateLangToggle();
@@ -3920,9 +3941,9 @@ function startChat() {
     }
   });
 
-  chatMessages.addEventListener('scroll', () => {
+  chatMessages.addEventListener('scroll', throttle(() => {
     isAtBottom = chatMessages.scrollTop + chatMessages.clientHeight >= chatMessages.scrollHeight - 10;
-  });
+  }, 100));
 
   // Removed: auto-focus on body click was disruptive
   // Focus is now only set when user explicitly taps/clicks the input area
@@ -4934,29 +4955,29 @@ chatInput.focus();
 
 // iOS 键盘适配：监听 visualViewport 变化，键盘弹出时自动滚动输入框到可见区域
 if (typeof visualViewport !== 'undefined') {
-  visualViewport.addEventListener('resize', () => {
+  visualViewport.addEventListener('resize', debounce(() => {
     if (document.activeElement === chatInput) {
       setTimeout(() => {
         chatInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
       }, 100);
     }
-  });
-  
-  visualViewport.addEventListener('scroll', () => {
+  }, 150));
+
+  visualViewport.addEventListener('scroll', debounce(() => {
     if (document.activeElement === chatInput) {
       setTimeout(() => {
         chatInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
       }, 100);
     }
-  });
+  }, 150));
 }
 
 // 备用方案：监听 window 的 resize 事件
-window.addEventListener('resize', () => {
+window.addEventListener('resize', debounce(() => {
   if (document.activeElement === chatInput) {
     chatInput.scrollIntoView({ block: 'center' });
   }
-});
+}, 200));
 </script>
 </body>
 </html>
