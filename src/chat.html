@@ -3529,6 +3529,7 @@ const voiceBtn = document.getElementById('voice-btn');
 const voiceStatus = document.getElementById('voice-status');
 
 let isRecording = false;
+let startingRecording = false; // guard against concurrent startRecording() calls
 let mediaRecorder = null;
 let audioChunks = [];
 let recordingTimeout = null;
@@ -3537,6 +3538,7 @@ let recordingStartTime = null;
 let audioContext = null;
 let analyser = null;
 let audioStream = null;
+let recordingSource = null; // MediaStreamSource node for explicit disconnect
 let visualizerTimer = null;
 const MAX_RECORDING_TIME = 300000; // 5 minutes
 
@@ -3552,14 +3554,17 @@ voiceBtn.addEventListener('click', async () => {
   if (isRecording) {
     // Stop recording
     stopRecording();
-  } else {
-    // Start recording
+  } else if (!startingRecording) {
+    // Start recording (skip if already starting to prevent race)
     startRecording();
   }
 });
 
 async function startRecording() {
   try {
+    // Guard against concurrent calls during async setup
+    startingRecording = true;
+
     // Clean up any existing stream before creating a new one
     if (audioStream) {
       audioStream.getTracks().forEach(track => track.stop());
@@ -3568,6 +3573,10 @@ async function startRecording() {
     if (audioContext) {
       audioContext.close();
       audioContext = null;
+    }
+    if (recordingSource) {
+      recordingSource.disconnect();
+      recordingSource = null;
     }
 
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -3583,8 +3592,11 @@ async function startRecording() {
     audioContext = new (window.AudioContext || window.webkitAudioContext)();
     analyser = audioContext.createAnalyser();
     analyser.fftSize = 64;
-    const source = audioContext.createMediaStreamSource(stream);
-    source.connect(analyser);
+    recordingSource = audioContext.createMediaStreamSource(stream);
+    recordingSource.connect(analyser);
+
+    // Capture recorder in closure to avoid stale reference races
+    const recorder = mediaRecorder;
 
     mediaRecorder.ondataavailable = e => {
       if (e.data.size > 0) {
@@ -3592,9 +3604,11 @@ async function startRecording() {
       }
     };
 
-    mediaRecorder.onstop = async () => {
+    // NOTE: do NOT call stopVisualizer() here — stopRecording() handles it
+    // to avoid closing the wrong AudioContext when a new recording started
+    // before this onstop fires.
+    recorder.onstop = async () => {
       stream.getTracks().forEach(track => track.stop());
-      stopVisualizer();
 
       if (audioChunks.length > 0) {
         await transcribeAudio();
@@ -3603,6 +3617,7 @@ async function startRecording() {
 
     mediaRecorder.start();
     isRecording = true;
+    startingRecording = false;
     recordingStartTime = Date.now();
     voiceBtn.classList.add('recording');
     voiceBtn.classList.remove('transcribing');
@@ -3624,11 +3639,40 @@ async function startRecording() {
     }, MAX_RECORDING_TIME);
 
   } catch (err) {
+    startingRecording = false;
     console.error('Microphone access error:', err);
     voiceStatus.textContent = currentLang === 'zh' ? '❌ 无法访问麦克风' : '❌ Cannot access microphone';
     voiceStatus.classList.add('error');
   }
 }
+
+// Clean up recording resources if tab closes mid-recording
+window.addEventListener('beforeunload', () => {
+  if (isRecording || audioStream || audioContext) {
+    if (audioStream) {
+      audioStream.getTracks().forEach(track => track.stop());
+    }
+    if (audioContext) {
+      audioContext.close();
+    }
+    if (recordingSource) {
+      recordingSource.disconnect();
+    }
+  }
+});
+window.addEventListener('pagehide', () => {
+  if (isRecording || audioStream || audioContext) {
+    if (audioStream) {
+      audioStream.getTracks().forEach(track => track.stop());
+    }
+    if (audioContext) {
+      audioContext.close();
+    }
+    if (recordingSource) {
+      recordingSource.disconnect();
+    }
+  }
+});
 
 // Convert AudioBuffer to WAV Blob
 function audioBufferToWav(buffer) {
@@ -3711,8 +3755,25 @@ function stopRecording() {
     recordingTimeout = null;
   }
 
-  // Clear visualizer
+  // Clear visualizer (closes AudioContext and nulls audioContext/analyser)
   stopVisualizer();
+
+  // Clean up MediaStreamSource node
+  if (recordingSource) {
+    recordingSource.disconnect();
+    recordingSource = null;
+  }
+
+  // Clear media stream tracks
+  if (audioStream) {
+    audioStream.getTracks().forEach(track => track.stop());
+    audioStream = null;
+  }
+
+  // Null out stale references to prevent leaks
+  mediaRecorder = null;
+  audioContext = null;
+  analyser = null;
 
   voiceStatus.classList.remove('voice-timer', 'recording');
   voiceStatus.textContent = currentLang === 'zh' ? '⏳ 正在转写...' : '⏳ Transcribing...';
@@ -3753,13 +3814,6 @@ function stopVisualizer() {
   document.querySelectorAll('.voice-btn .wave-bar').forEach(bar => {
     bar.style.height = '3px';
   });
-
-  // Close audio context
-  if (audioContext) {
-    audioContext.close();
-    audioContext = null;
-    analyser = null;
-  }
 }
 
 function updateRecordingTimer() {
@@ -3986,8 +4040,8 @@ function startChat() {
     }
     
     // If we have a preserved blob URL from a previous play, reuse it
-    if (player.dataset.blobUrl) {
-      player.src = player.dataset.blobUrl;
+    if (container.dataset.blobUrl) {
+      player.src = container.dataset.blobUrl;
       player.classList.add('visible');
       container.querySelector('.msg-video-close-btn').classList.add('visible');
       container.querySelector('.msg-video-thumb').style.display = 'none';
@@ -4030,18 +4084,18 @@ function startChat() {
   });
   
   // Video close function (called from onclick)
-  // Preserves blob URL so re-play doesn't require re-download
+  // Preserves blob URL in container dataset so re-play doesn't require re-download
   window.videoClose = function(closeBtn) {
     const container = closeBtn.closest('.msg-video-container');
     const player = container.querySelector('.msg-video-player');
     const playBtn = container.querySelector('.msg-video-play-btn');
     const thumb = container.querySelector('.msg-video-thumb');
-    
+
     player.pause();
     player.classList.remove('visible');
-    // Store blob URL in data attribute before clearing src (for replay)
+    // Store blob URL in container data attribute (for replay, found by recall cleanup)
     if (player.src && player.src.startsWith('blob:')) {
-      player.dataset.blobUrl = player.src;
+      container.dataset.blobUrl = player.src;
     }
     player.removeAttribute('src');
     player.load(); // Reset media state
@@ -4146,14 +4200,26 @@ function joinWS() {
       }
     } else if (data.type === 'recall') {
       // Remove recalled message from UI and revoke blob URLs
-      const el = document.querySelector(`.msg[data-id="${data.messageId}"]`);
+      const el = document.querySelector(`.msg[data-id="${CSS.escape(data.messageId)}"]`);
       if (el) {
-        // Revoke any blob URLs in this message to prevent memory leaks
+        // Revoke img blob URLs
         el.querySelectorAll('[src^="blob:"]').forEach(img => {
-          if (img.src) URL.revokeObjectURL(img.src);
+          URL.revokeObjectURL(img.src);
         });
+        // Revoke video and source blob URLs
+        el.querySelectorAll('video[src^="blob:"]').forEach(v => {
+          URL.revokeObjectURL(v.src);
+        });
+        el.querySelectorAll('source[src^="blob:"]').forEach(s => {
+          URL.revokeObjectURL(s.src);
+        });
+        // Revoke blob URL stored in dataset for replay
+        el.querySelectorAll('[data-blob-url]').forEach(el2 => {
+          URL.revokeObjectURL(el2.dataset.blobUrl);
+        });
+        // Revoke anchor blob hrefs
         el.querySelectorAll('[href^="blob:"]').forEach(a => {
-          if (a.href) URL.revokeObjectURL(a.href);
+          URL.revokeObjectURL(a.href);
         });
         el.remove();
       }
