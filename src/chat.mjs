@@ -232,6 +232,61 @@ async function handleApiRequest(path, request, env) {
       });
     }
 
+    case "file": {
+      // GET /api/file/:id - proxy file from shotsync so Office Online can access it
+      // shotsync /share/ URLs are signed and not publicly accessible,
+      // so we proxy through the worker using the stored token
+      if (request.method !== "GET") {
+        return new Response("Method not allowed", {status: 405});
+      }
+
+      const fileId = path[1];
+      if (!fileId) {
+        return new Response("File ID required", {status: 400});
+      }
+
+      const shotsyncUrl = env.SHOTSYNC_URL || "https://shotsync.hao123456.cn";
+      const shotsyncToken = env.SHOTSYNC_TOKEN;
+
+      if (!shotsyncToken) {
+        return new Response("Shotsync not configured", {status: 500});
+      }
+
+      try {
+        // Try shotsync's file download endpoint
+        const fileResponse = await fetch(`${shotsyncUrl}/api/file/${encodeURIComponent(fileId)}`, {
+          headers: {
+            "Authorization": `Bearer ${shotsyncToken}`
+          }
+        });
+
+        if (!fileResponse.ok) {
+          console.error("shotsync file fetch failed:", fileResponse.status, await fileResponse.text());
+          return new Response("File not found", {status: fileResponse.status});
+        }
+
+        const contentType = fileResponse.headers.get("Content-Type") || "application/octet-stream";
+        const contentDisposition = fileResponse.headers.get("Content-Disposition");
+
+        const headers = {
+          "Content-Type": contentType,
+          "Cache-Control": "public, max-age=3600",
+          "Access-Control-Allow-Origin": "*"
+        };
+        if (contentDisposition) {
+          headers["Content-Disposition"] = contentDisposition;
+        }
+
+        return new Response(fileResponse.body, {
+          status: fileResponse.status,
+          headers
+        });
+      } catch (err) {
+        console.error("file proxy error:", err);
+        return new Response("Internal error", {status: 500});
+      }
+    }
+
     case "room": {
       // Request for `/api/room/...`.
 
