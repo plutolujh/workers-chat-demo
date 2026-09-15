@@ -3560,6 +3560,16 @@ voiceBtn.addEventListener('click', async () => {
 
 async function startRecording() {
   try {
+    // Clean up any existing stream before creating a new one
+    if (audioStream) {
+      audioStream.getTracks().forEach(track => track.stop());
+      audioStream = null;
+    }
+    if (audioContext) {
+      audioContext.close();
+      audioContext = null;
+    }
+
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
 
     audioChunks = [];
@@ -4135,9 +4145,18 @@ function joinWS() {
         console.log('DEBUG message already displayed, skipping');
       }
     } else if (data.type === 'recall') {
-      // Remove recalled message from UI
+      // Remove recalled message from UI and revoke blob URLs
       const el = document.querySelector(`.msg[data-id="${data.messageId}"]`);
-      if (el) el.remove();
+      if (el) {
+        // Revoke any blob URLs in this message to prevent memory leaks
+        el.querySelectorAll('[src^="blob:"]').forEach(img => {
+          if (img.src) URL.revokeObjectURL(img.src);
+        });
+        el.querySelectorAll('[href^="blob:"]').forEach(a => {
+          if (a.href) URL.revokeObjectURL(a.href);
+        });
+        el.remove();
+      }
       addMsg(null, data.by + (currentLang === 'zh' ? ' 撤回了一条消息' : ' recalled a message'), 'system');
     } else if (data.recall) {
       // Confirm of own recall - just acknowledge
