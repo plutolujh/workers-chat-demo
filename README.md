@@ -2,7 +2,7 @@
 
 This is a demo app written on [Cloudflare Workers](https://workers.cloudflare.com/) utilizing [Durable Objects](https://blog.cloudflare.com/introducing-workers-durable-objects) to implement real-time chat with stored history. This app runs 100% on Cloudflare's edge.
 
-Try it here: https://edge-chat-demo.cloudflareworkers.com
+**Live Demo:** https://chat.hao123456.cn
 
 The reason this demo is remarkable is because it deals with state. Before Durable Objects, Workers were stateless, and state had to be stored elsewhere. State can mean storage, but it also means the ability to coordinate. In a chat room, when one user sends a message, the app must somehow route that message to other users, via connections that those other users already had open. These connections are state, and coordinating them in a stateless framework is hard if not impossible.
 
@@ -14,8 +14,6 @@ Additionally, this demo uses Durable Objects for a second purpose: Applying a ra
 
 This chat app is only a few hundred lines of code. The deployment configuration is only a few lines. Yet, it will scale seamlessly to any number of chat rooms, limited only by Cloudflare's available resources. Of course, any individual chat room's scalability has a limit, since each object is single-threaded. But, that limit is far beyond what a human participant could keep up with anyway.
 
-For more details, take a look at the code! It is well-commented.
-
 ## Updates
 
 This example was originally written using the [WebSocket API](https://developers.cloudflare.com/workers/runtime-apis/websockets/), but has since been [modified](https://github.com/cloudflare/workers-chat-demo/pull/32) to use the [WebSocket Hibernation API](https://developers.cloudflare.com/durable-objects/api/websockets/#websocket-hibernation), which is exclusive to Durable Objects.
@@ -24,9 +22,65 @@ Prior to switching to the Hibernation API, WebSockets connected to a chatroom wo
 
 Switching to the WebSocket Hibernation API reduces duration billing from the lifetime of the WebSocket connection to the amount of time when JavaScript is actively executing.
 
+## Features (Added Features)
+
+### Real-time Messaging
+- WebSocket-based real-time chat
+- Message history persistence in Durable Objects storage
+- Multi-room support with unique room IDs
+- User presence indicators
+
+### Rich Media Support
+- **Images** - Upload with compression, thumbnail generation, full-screen viewer with zoom/rotate
+- **Videos** - Upload with thumbnail preview, inline playback, progress indicator
+- **PDF** - Opens in new tab using browser's built-in PDF viewer
+- **Office Documents** (docx, xlsx) - Preview via Microsoft Office Online (desktop) or direct download (mobile)
+- **Voice Messages** - Record and send audio files
+
+### Advanced Features
+- **Quote/Reply (WeChat-style)** - Reply to specific messages with quoted context
+- **Message Recall** - Delete your own messages after sending
+- **Voice to Text** - Convert voice recordings to text using MiniMax ASR API
+- **Random Username Generator** - Quick anonymous chat with generated names
+- **Multi-language** - English / 中文 toggle
+- **Themes** - Dark, Light, Midnight, Sunset themes
+- **Collapsible Messages** - Expand/collapse long messages
+- **Download Progress** - Progress bar for all file downloads
+
+### Technical Highlights
+- Durable Objects for chat room state and WebSocket management
+- WebSocket Hibernation API for cost-effective connections
+- shotsync integration for file storage (images, videos, documents)
+- ASR proxy for voice-to-text functionality
+- CORS-enabled API endpoints
+
+## Architecture
+
+```
+┌─────────────┐     WebSocket      ┌──────────────────┐
+│   Browser   │ ◄──────────────► │  Durable Object  │
+│  (chat.html)│                  │    (ChatRoom)    │
+└─────────────┘                  └────────┬─────────┘
+                                          │
+                          ┌───────────────┼───────────────┐
+                          │               │               │
+                    ┌─────▼─────┐  ┌─────▼─────┐  ┌─────▼─────┐
+                    │  Messages  │  │   Users   │  │   Rate    │
+                    │  Storage  │  │   List    │  │  Limiter  │
+                    └───────────┘  └───────────┘  └───────────┘
+```
+
+## Tech Stack
+
+- **Frontend:** Vanilla HTML/CSS/JS (no framework dependencies)
+- **Backend:** Cloudflare Workers (chat.mjs)
+- **State:** Cloudflare Durable Objects
+- **Storage:** [shotsync](https://github.com/plutolujh/shotsync) (R2-based file storage)
+- **ASR:** MiniMax Speech-to-Text API
+
 ## Learn More
 
-* [Durable Objects introductory blog post](https://blog.cloudflare.com/introducing-workers-durable-objects)
+* [Durable Objects blog post](https://blog.cloudflare.com/introducing-workers-durable-objects)
 * [Durable Objects documentation](https://developers.cloudflare.com/workers/learning/using-durable-objects)
 * [Durable Object WebSocket documentation](https://developers.cloudflare.com/durable-objects/reference/websockets/)
 
@@ -46,9 +100,34 @@ If you get an error saying "Cannot create binding for class [...] because it is 
 
 This command will deploy the app to your account under the name `edge-chat-demo`.
 
+### Required Secrets
+
+```bash
+npx wrangler secret put SHOTSYNC_TOKEN    # shotsync authentication
+npx wrangler secret put MINIMAX_ASR_API_KEY  # MiniMax ASR API (optional)
+```
+
 ## What are the dependencies?
 
-This demo code does not have any dependencies, aside from Cloudflare Workers (for the server side, `chat.mjs`) and a modern web browser (for the client side, `chat.html`). Deploying the code requires Wrangler.
+This demo code does not have any external dependencies, aside from Cloudflare Workers (for the server side, `chat.mjs`) and a modern web browser (for the client side, `chat.html`). Deploying the code requires Wrangler.
+
+## API Endpoints
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/upload` | POST | Upload image/video with thumbnail |
+| `/api/list` | GET | List room messages |
+| `/api/asr` | POST | Proxy to MiniMax ASR |
+| `/api/room` | DELETE | Delete a room |
+| `/websocket` | WS | WebSocket connection |
+
+## File Structure
+
+```
+src/
+├── chat.html    # Frontend (single file, ~5000 lines)
+├── chat.mjs     # Backend (Workers + Durable Objects)
+```
 
 ## How to uninstall
 
