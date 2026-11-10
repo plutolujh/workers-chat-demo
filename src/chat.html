@@ -7,6 +7,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <!-- QR Code library for share functionality -->
+  <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
   <style>
 /* ===== THEMES ===== */
 [data-theme="dark"] {
@@ -1667,6 +1669,40 @@ body {
   font-family: 'JetBrains Mono', monospace;
 }
 
+/* ===== QR CODE BOX ===== */
+.qr-code-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  padding: 16px;
+  background: var(--surface-hover);
+  border-radius: 12px;
+  border: 1px solid var(--border);
+}
+
+#qr-code {
+  width: 200px;
+  height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: white;
+  border-radius: 8px;
+}
+
+#qr-code canvas {
+  max-width: 100%;
+  max-height: 100%;
+}
+
+.qr-code-label {
+  font-size: 12px;
+  color: var(--text-muted);
+  text-align: center;
+}
+
 .share-note {
   font-size: 12px;
   color: var(--text-muted);
@@ -2407,6 +2443,10 @@ button:focus-visible {
       <input type="text" id="share-link" class="modal-input" readonly>
       <button id="copy-btn" class="modal-btn" data-i18n="copy_link">Copy Link</button>
     </div>
+    <div class="qr-code-box">
+      <p class="qr-code-label" data-i18n="qr_scan">Scan with WeChat to join</p>
+      <div id="qr-code"></div>
+    </div>
     <p class="share-note" data-i18n="share_note">Only people with this link can join</p>
     <button id="enter-btn" class="modal-btn-outline" data-i18n="enter_room">Enter Room</button>
   </div>
@@ -2442,10 +2482,11 @@ const i18n = {
     rule6: '🚫 No sharing personal private information',
     rules_note: 'Violations may result in mute or IP ban',
     share: 'Share',
-    share_title: 'Share Private Room',
-    share_sub: 'Copy this link and send it to friends',
+    share_title: 'Share Room',
+    share_sub: 'Copy this link or scan the QR code to invite others',
     copy_link: 'Copy',
-    share_note: 'Only people with this link can join',
+    share_note: 'Anyone with this link can join this room',
+    qr_scan: 'Scan with WeChat to join',
     enter_room: 'Enter Room',
     link_copied: 'Link copied!',
     name_placeholder: 'Your name',
@@ -2484,10 +2525,11 @@ const i18n = {
     rule6: '🚫 禁止泄露个人隐私信息',
     rules_note: '违反规则将被禁言或封禁IP',
     share: '分享',
-    share_title: '分享私密房间',
-    share_sub: '复制链接发送给朋友',
+    share_title: '分享房间',
+    share_sub: '复制链接或扫码邀请他人加入',
     copy_link: '复制',
-    share_note: '只有获得链接的人才能加入',
+    share_note: '获得链接的人即可加入此房间',
+    qr_scan: '用微信扫码加入',
     enter_room: '进入房间',
     link_copied: '链接已复制！',
     name_placeholder: '你的名字',
@@ -2622,6 +2664,23 @@ const deleteBtn = document.getElementById('delete-btn');
 const shareLink = document.getElementById('share-link');
 const copyBtn = document.getElementById('copy-btn');
 const enterBtn = document.getElementById('enter-btn');
+const qrCodeEl = document.getElementById('qr-code');
+
+// Generate a QR code for the current share URL. WeChat's built-in scanner
+// opens the resulting URL directly, so the QR only ever encodes the room link.
+let qrCodeInstance = null;
+function generateQRCode(url) {
+  if (!qrCodeEl) return;
+  qrCodeEl.innerHTML = '';
+  qrCodeInstance = new QRCode(qrCodeEl, {
+    text: url,
+    width: 200,
+    height: 200,
+    colorDark: '#000000',
+    colorLight: '#ffffff',
+    correctLevel: QRCode.CorrectLevel.M
+  });
+}
 
 // ===== EMOJI PICKER =====
 const emojis = ['😀','😃','😄','😁','😆','😅','🤣','😂','🙂','🙃','😉','😊','😇','🥰','😍','🤩','😘','😗','☺️','😋','😛','😜','🤪','😝','🤑','🤗','🤭','🤫','🤔','🤐','🤨','😐','😑','😶','😏','😒','🙄','😬','🤥','😌','😔','😪','🤤','😴','😷','🤒','🤕','🤢','🤮','🤧','🥵','🥶','🥴','😵','🤯','🤠','🥳','😎','🤓','🧐','😕','😟','🙁','☹️','😮','😯','😲','😳','🥺','😦','😧','😨','😰','😥','😢','😭','😱','😖','😣','😞','😓','😩','😫','🥱','😤','😡','😠','🤬','😈','👿','💀','☠️','💩','🤡','👹','👺','👻','👽','👾','🤖','😺','😸','😹','😻','😼','😽','🙀','😿','😾','🙈','🙉','🙊','💋','💌','💘','💝','💖','💗','💓','💞','💕','💟','❣️','💔','❤️','🧡','💛','💚','💙','💜','🤎','🖤','🤍','💯','💢','💥','💫','💦','💨','🕳️','💣','💬','👋','🤚','🖐️','✋','🖖','👌','🤌','🤏','✌️','🤞','🤟','🤘','🤙','👈','👉','👆','🖕','👇','☝️','👍','👎','✊','👊','🤛','🤜','👏','🙌','👐','🤲','🤝','🙏','✍️','💅','🤳','💪','🦾','🦿','🦵','🦶','👂','🦻','👃','🧠','🫀','🫁','🦷','🦴','👀','👁️','👅','👄','👶','🧒','👦','👧','🧑','👱','👨','🧔','👩','🧓','👴','👵','🙍','🙋','🧏','🙇','🤦','🤷','👮','🕵️','💂','🥷','👷','🤴','👸','👳','👲','🧕','🤵','👰','🤰','🤱','👼','🎒','💼','👓','🕶️','🥽','🥼','🧥','👔','👕','👖','🧣','🧤','🧥','🧦','👗','👘','🥻','🩱','🩲','🩳','👙','👚','👛','👜','👝','🎒','👞','👟','🥾','🎵','👠','👡','👢','🩰','👑','👒','🎩','🎓','🧢','⛑️','📿','💄','💍','💎','🐵','🐒','🦍','🦧','🐶','🐕','🦮','🐩','🐺','🦊','🦁','🐯','🐱','🐈','🐈‍','🦁','🐨','🐼','🐻','🐻‍❄️','🐰','🐔','🐧','🐦','🐤','🦆','🦅','🦉','🦇','🐺','🐗','🐴','🦄','🐝','🪱','🐛','🦋','🐌','🐞','🐜','🪰','🪲','🪳','🦟','🦗','🕷️','🕸️','🦂','🐢','🐍','🦎','🦖','🦕','🐙','🦑','🦐','🦞','🦀','🐡','🐠','🐟','🐬','🐳','🐋','🦈','🐊','🐅','🐆','🦓','🦍','🦧','🦣','🐘','🦛','🦏','🐪','🐫','🦒','🦘','🦬','🐃','🐂','🐄','🐎','🐖','🐏','🐑','🦙','🐐','🦌','🐕','🐩','🦮','🐈','🐓','🦃','🦚','🦜','🦢','🦩','🕊️','🐇','🦝','🦨','🦡','🦫','🦦','🦥','🐁','🐀','🐿️','🦔','🌵','🎄','🌲','🌳','🌴','🪵','🌱','🌿','☘️','🍀','🎍','🪴','🎋','🍃','🍂','🍁','🪹','🍄','🌾','💐','🌷','🌹','🥀','🌺','🌸','🌼','🌻','🌞','🌝','🌛','🌜','🌚','🌕','🌖','🌗','🌘','🌑','🌒','🌓','🌔','🌙','🌎','🌍','🌏','🪐','💫','⭐','🌟','✨','⚡','☄️','💥','🔥','🌪','🌈','☀️','🌤️','⛅','🌥','☁️','🌦','🌧','⛈','🌩','🌨','❄️','☃️','⛄','🌬','💨','🌫','🌪','🌀','🌁','🌊','💧','💦','🪨','🔥','💥','✨','⚡','☄️','💫','⭐','🌟','🎭','🩰','🎨','🎬','🎤','🎧','🎼','🎹','🥁','🪘','🎷','🎺','🎸','🪕','🎻','🎲','♟','🎯','🎳','🎮','🕹️','🎰','🧩','🪅','🪆','🪄','🎁','🎀','🎊','🎉','🎈','🏆','🏅','🥇','🥈','🥉','🏵','🎖️','🎗️','🎟️','🎫','🎪','🤹','🎭','🩱','🧗','🏋️','🤼','🤽','🤾','⛹️','🏌️','🏇','🚴','🚵','🤸','🏊','🤺','⛷️','🏂','🪂','🏋️','🤸','🚣','🛶','🛼','🛹','🚴','🚵','🏎️','🏍️','🛻','🚑','🚒','🚐','🚚','🚛','🚜','🛴','🚲','🛵','🏍️','🛺','🚨','🚔','🚍','🚘','🚖','🚡','🚠','🚟','🚃','🚋','🚞','🚝','🚄','🚅','🚈','🚂','🚆','🚇','🚊','🚉','✈️','🛫','🛬','🛩️','💺','🛰️','🚀','🛸','🚁','⛵','🚤','🛥️','🛳️','🚢','⚓','⛽','🚧','🚦','🚥','🗺️','🗿','🗽','🗼','🏰','🏯','🏟️','🎡','🎢','🎠','⛲','⛱','🏖️','🏝️','🏜️','🌋','⛰️','🏔️','🗻','🏕️','⛺','🛖','🏠','🏡','🏘️','🏚️','🏗️','🏭','🏢','🏬','🏣','🏤','🏥','🏦','🏨','🏪','🏫','🏩','💒','🏛️','⛪','🕌','🕍','🛕','🕋','⛩️','🛤️','🛣️','🗾','🗺️','🗻','🗼','🗽','🗿','🏔️','⛰️','🌋','🗻','🏝️','🏜️','🌅','🌄','🌠','🎇','🎆','🌌','🌉','🌁','🏞️','🏟️','🏛️','🏗️','🏘️','🏚️','🏠','🏡'];
@@ -3534,6 +3593,7 @@ document.getElementById('private-btn').addEventListener('click', async () => {
     // Show share overlay for private room
     const shareUrl = `${location.origin}/#${roomname}`;
     shareLink.value = shareUrl;
+    generateQRCode(shareUrl);
     roomOverlay.classList.add('hidden');
     shareOverlay.classList.remove('hidden');
     // Show share button in header
@@ -3562,6 +3622,7 @@ enterBtn.addEventListener('click', () => {
 shareBtn.addEventListener('click', () => {
   const shareUrl = `${location.origin}/#${roomname}`;
   shareLink.value = shareUrl;
+  generateQRCode(shareUrl);
   shareOverlay.classList.remove('hidden');
 });
 
@@ -4089,11 +4150,12 @@ function startChat() {
   roomBadge.textContent = '#' + roomname;
   roomBadge.style.display = 'inline';
 
-  // Show share button for private rooms (64 hex chars)
-  if (roomname.length === 64) {
+  // Show share button for public rooms (private rooms not supported yet)
+  if (roomname.length !== 64) {
     shareBtn.classList.add('visible');
     const shareUrl = `${location.origin}/#${roomname}`;
     shareLink.value = shareUrl;
+    generateQRCode(shareUrl);
   }
 
   // Show clear and delete buttons when in chat
