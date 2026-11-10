@@ -2450,12 +2450,12 @@ let currentTheme = localStorage.getItem('chat-theme') || 'dark';
 let username = '';
 let roomname = '';
 let rosterUsers = [];
-let isAtBottom = true;
 let wroteWelcomeMessages = false;
 let currentWebSocket = null;
 let hasMoreMessages = false;
 let isLoadingMore = false;
 let isReceivingHistory = false; // Flag for initial history load
+let initialLoadDone = false; // True once the initial history has been rendered
 let displayedTimestamps = new Set(); // Track displayed message timestamps to avoid duplicates
 let messageOrder = localStorage.getItem('chat-order') || 'asc'; // 'asc' = oldest first, 'desc' = newest first
 
@@ -4005,10 +4005,6 @@ function startChat() {
     }
   });
 
-  chatMessages.addEventListener('scroll', throttle(() => {
-    isAtBottom = chatMessages.scrollTop + chatMessages.clientHeight >= chatMessages.scrollHeight - 10;
-  }, 100));
-
   // Removed: auto-focus on body click was disruptive
   // Focus is now only set when user explicitly taps/clicks the input area
 
@@ -4130,6 +4126,7 @@ function joinWS() {
 
   ws.addEventListener('open', () => {
     currentWebSocket = ws;
+    initialLoadDone = false;
     ws.send(JSON.stringify({ name: username }));
   });
 
@@ -4153,15 +4150,22 @@ function joinWS() {
         }
       }
       isReceivingHistory = true; // Start receiving initial history
+      // The whole backlog has been rendered: jump to the newest message so the
+      // last message the user sent is visible right after (re)connecting.
+      initialLoadDone = true;
+      scrollToNewest(false);
     } else if (data.type === 'history') {
       // Handle load more response
       isLoadingMore = false;
       const loadMoreBtn = document.getElementById('load-more-btn');
       if (loadMoreBtn) loadMoreBtn.remove();
 
-      // Record current scroll state before adding messages
-      const oldScrollHeight = chatMessages.scrollHeight;
-      const oldScrollTop = chatMessages.scrollTop;
+      // Keep the message the user is looking at in place while the older
+      // messages are inserted around it.
+      const anchorEl = messageOrder === 'asc'
+        ? (chatMessages.querySelector('.msg[data-id]'))
+        : (chatMessages.querySelectorAll('.msg[data-id]')[chatMessages.querySelectorAll('.msg[data-id]').length - 1]);
+      const anchorTop = anchorEl ? anchorEl.getBoundingClientRect().top : null;
 
       // Backend returns newest-first: [newest, ..., oldest]
       // asc: forEach insertBefore(first msg) without reverse gives [oldest, ..., newest]
@@ -4172,12 +4176,7 @@ function joinWS() {
         addMsgOld(msg.name, msg.message, '', msg.image, msg.timestamp, msg.fileName, msg.quote || null);
       });
 
-      // When desc order, maintain scroll position after adding messages
-      if (messageOrder === 'desc') {
-        const newScrollHeight = chatMessages.scrollHeight;
-        const addedHeight = newScrollHeight - oldScrollHeight;
-        chatMessages.scrollTop = oldScrollTop + addedHeight;
-      }
+      restoreAnchorPosition(anchorEl, anchorTop);
 
       hasMoreMessages = data.messages.length >= 30;
       isReceivingHistory = false; // Finished receiving initial history
@@ -4269,7 +4268,62 @@ function recallSelectedMsg() {
   toggleRecallMode();
 }
 
+// ===== SCROLL HELPERS =====
+// The message list is not always the scrolling element: depending on the layout
+// the window scrolls instead of .chat-messages. These helpers therefore work with
+// element positions and scroll both, so the newest message is always visible.
+
+// All rendered messages, oldest/newest depending on messageOrder.
+function getMessageElements() {
+  return chatMessages.querySelectorAll('.msg');
+}
+
+// True when the user is currently looking at the newest message.
+function isViewingNewest() {
+  const msgs = getMessageElements();
+  if (!msgs.length) return true;
+  const target = messageOrder === 'asc' ? msgs[msgs.length - 1] : msgs[0];
+  const rect = target.getBoundingClientRect();
+  const tolerance = 32;
+  return messageOrder === 'asc'
+    ? rect.bottom <= window.innerHeight + tolerance   // newest sits at the bottom
+    : rect.top >= -tolerance;                          // newest sits at the top
+}
+
+// Bring the newest message into view.
+function scrollToNewest(smooth = true) {
+  const msgs = getMessageElements();
+  if (!msgs.length) return;
+  const behavior = smooth ? 'smooth' : 'instant';
+
+  if (messageOrder === 'asc') {
+    // Newest message is the queue tail: scroll the list (and the window) to the end.
+    chatMessages.scrollTo({ top: chatMessages.scrollHeight, behavior });
+    window.scrollTo({ top: document.documentElement.scrollHeight, behavior });
+  } else {
+    // Newest message is the queue head: scroll back to the top of the list.
+    chatMessages.scrollTo({ top: 0, behavior });
+    window.scrollTo({ top: 0, behavior });
+  }
+}
+
+// Keep an element at the same viewport position after content was inserted
+// around it (used by "load more" so the user does not lose their place).
+function restoreAnchorPosition(anchorEl, oldTop) {
+  if (!anchorEl || oldTop === null) return;
+  const delta = anchorEl.getBoundingClientRect().top - oldTop;
+  if (!delta) return;
+  if (chatMessages.scrollHeight > chatMessages.clientHeight) {
+    chatMessages.scrollTop += delta;   // the list itself scrolls
+  } else {
+    window.scrollBy({ top: delta, behavior: 'instant' });
+  }
+}
+
 function addMsg(name, text, type = '', image = null, timestamp = null, isHistory = false, fileName = '', quote = null) {
+  // Remember whether the user was looking at the newest message *before* this
+  // one is added - afterwards the new message may be below the fold.
+  const wasAtNewest = isViewingNewest();
   const isOwn = name === username;
   const div = document.createElement('div');
   div.className = 'msg' + (type ? ' ' + type : '') + (isOwn ? ' own' : '');
@@ -4513,8 +4567,8 @@ function addMsg(name, text, type = '', image = null, timestamp = null, isHistory
   } else {
     chatMessages.prepend(div);  // desc mode
   }
-  if (isAtBottom) {
-    chatMessages.scrollTop = 0;
+  if (wasAtNewest) {
+    scrollToNewest(!initialLoadDone);
   }
 }
 

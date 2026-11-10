@@ -60,6 +60,7 @@
 // available for assets served this way is very limited; larger sites should continue to use Workers
 // KV to serve assets.)
 import HTML from "./chat.html";
+import { pickInitialPage } from "./backlog.mjs";
 
 // Version from git commit hash - replaced at build time via wrangler.toml
 const VERSION = "b65d967";
@@ -546,12 +547,10 @@ export class ChatRoom {
     // the client. Backend sends oldest first (after reverse), client prepends.
     const pageSize = 30; // Configurable: number of messages to load initially
     let storage = await this.storage.list({reverse: true, limit: pageSize + 1});
-    let backlog = [...storage.values()].reverse(); // oldest first
-    // If there are more than pageSize messages, signal that there's more
-    const hasMore = backlog.length > pageSize;
-    if (hasMore) {
-      backlog = backlog.slice(0, pageSize);
-    }
+    // storage.list() returns newest first; keep the NEWEST pageSize entries so
+    // that the most recent message is always part of the initial backlog.
+    const { page, hasMore } = pickInitialPage([...storage.values()], pageSize);
+    let backlog = page.reverse(); // oldest first
     backlog.forEach(value => {
       session.blockedMessages.push(value);
     });
