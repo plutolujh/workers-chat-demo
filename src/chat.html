@@ -2793,10 +2793,14 @@ let selectedFileName = '';
 
 // Compress image, max 800px width, quality 0.7
 function compressImage(file, maxWidth = 800, quality = 0.7) {
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
     const reader = new FileReader();
+    // Without an error handler the promise would never settle and the upload
+    // (and with it the whole chat, because isUploading stays true) would hang.
+    reader.onerror = () => reject(new Error('Failed to read file'));
     reader.onload = (e) => {
       const img = new Image();
+      img.onerror = () => reject(new Error('Unsupported or corrupted image'));
       img.onload = () => {
         const canvas = document.createElement('canvas');
         let { width, height } = img;
@@ -2814,7 +2818,10 @@ function compressImage(file, maxWidth = 800, quality = 0.7) {
         ctx.drawImage(img, 0, 0, width, height);
 
         // Output as JPEG blob
-        canvas.toBlob(resolve, 'image/jpeg', quality);
+        canvas.toBlob((blob) => {
+          if (blob) resolve(blob);
+          else reject(new Error('Failed to compress image'));
+        }, 'image/jpeg', quality);
       };
       img.src = e.target.result;
     };
@@ -4098,6 +4105,11 @@ function startChat() {
   // Clear chat handler (local only)
   clearBtn.addEventListener('click', () => {
     chatMessages.innerHTML = '';
+    // The server still holds the history: forget which messages were rendered,
+    // otherwise a reconnect would skip every replayed message.
+    displayedTimestamps.clear();
+    hasMoreMessages = false;
+    updateLoadMoreButton();
     addMsg(null, currentLang === 'zh' ? '聊天记录已清空' : 'Chat cleared', 'system');
   });
 
@@ -4482,22 +4494,26 @@ function addMsg(name, text, type = '', image = null, timestamp = null, isHistory
     // Render image, video, or file attachment
     let mediaHtml = '';
     if (image) {
-      // Parse video format: thumbnailUrl::VIDEO::videoUrl (new) or thumbUrl|VIDEO|videoUrl (old fallback)
-      // Must have explicit ::VIDEO:: or |VIDEO| separator (not just | in URL signature)
-      const hasNewSep = image.includes('::VIDEO::');
-      const hasOldSep = image.includes('|VIDEO|');
-      const isVideoCombined = hasNewSep || hasOldSep;
+      // The image field is attacker controlled: never interpolate it into HTML
+      // as-is. Video messages carry "thumbUrl::VIDEO::videoUrl" (old format:
+      // "thumbUrl|VIDEO|videoUrl"), everything else is a single URL.
+      const rawImage = typeof image === 'string' ? image : '';
+      const hasNewSep = rawImage.includes('::VIDEO::');
+      const hasOldSep = rawImage.includes('|VIDEO|');
+      let isVideoCombined = hasNewSep || hasOldSep;
       // Also check if it's a video URL (no thumbnail but has video extension)
-      const isVideoUrl = (image.includes('/s/') || image.includes('/share/')) && /\.(mp4|mov|m4v|avi|webm|hevc|hev)(&|$|\?)/i.test(image);
-      const isVideoMedia = isVideoFile(fileName) || isVideoUrl;
+      const isVideoUrl = (rawImage.includes('/s/') || rawImage.includes('/share/')) && /\.(mp4|mov|m4v|avi|webm|hevc|hev)(&|$|\?)/i.test(rawImage);
+      let isVideoMedia = isVideoFile(fileName) || isVideoUrl;
       console.log('Video check:', { isVideoCombined, isVideoMedia, isVideoUrl, fileName, hasNewSep, hasOldSep });
-      
+
+      // Only http(s) URLs are allowed - anything else is dropped
+      const mediaUrl = isVideoCombined ? '' : safeUrl(rawImage);
+      const thumbUrl = isVideoCombined ? safeUrl((hasNewSep ? rawImage.split('::VIDEO::') : rawImage.split('|VIDEO|'))[0]) : '';
+      const videoUrl = isVideoCombined ? safeUrl((hasNewSep ? rawImage.split('::VIDEO::') : rawImage.split('|VIDEO|'))[1]) : '';
+
       if (isVideoMedia && isVideoCombined) {
         // Video message: blurred thumbnail + big play button
-        const parts = hasNewSep ? image.split('::VIDEO::') : image.split('|VIDEO|');
-        const thumbUrl = parts[0] || '';
-        const videoUrl = parts[1] || '';
-        console.log('Rendering video:', { thumbUrl, videoUrl, thumbUrlValid: thumbUrl.startsWith('http'), videoUrlValid: videoUrl.startsWith('http') });
+        console.log('Rendering video:', { thumbUrl, videoUrl });
         if (!thumbUrl || !videoUrl) {
           // Invalid format, treat as regular video
           isVideoMedia = true;
@@ -4505,7 +4521,7 @@ function addMsg(name, text, type = '', image = null, timestamp = null, isHistory
         } else {
           mediaHtml = `
             <div class="msg-video-container" data-video-src="${esc(videoUrl)}">
-              <img class="msg-video-thumb" src="${thumbUrl}" alt="Video thumbnail">
+              <img class="msg-video-thumb" src="${esc(thumbUrl)}" alt="Video thumbnail">
               <div class="msg-video-play-btn">▶</div>
               <div class="msg-video-progress-wrap"><div class="msg-video-progress-bar"></div></div>
               <button class="msg-video-close-btn" onclick="event.stopPropagation();videoClose(this);">✕</button>
@@ -4518,7 +4534,7 @@ function addMsg(name, text, type = '', image = null, timestamp = null, isHistory
       if (isVideoMedia && !isVideoCombined) {
         // Video without thumbnail: blurred placeholder + play button, download on click
         mediaHtml = `
-          <div class="msg-video-container" data-video-src="${esc(image)}">
+          <div class="msg-video-container" data-video-src="${esc(mediaUrl)}">
             <div class="msg-video-thumb" style="width:140px;height:80px;background:linear-gradient(135deg,var(--surface-hover),var(--surface-active));display:flex;align-items:center;justify-content:center;">
               <span style="font-size:28px;filter:blur(0);">🎬</span>
             </div>
@@ -4531,7 +4547,7 @@ function addMsg(name, text, type = '', image = null, timestamp = null, isHistory
       } else if (isImageFile(fileName)) {
         // Image
         mediaHtml = `
-          <img class="msg-image loading" data-src="${image}" data-full="${image}"
+          <img class="msg-image loading" data-src="${esc(mediaUrl)}" data-full="${esc(mediaUrl)}"
                src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
                loading="lazy" alt="Image"
                onload="this.classList.remove('loading'); this.classList.add('loaded')"
@@ -4540,7 +4556,7 @@ function addMsg(name, text, type = '', image = null, timestamp = null, isHistory
       } else if (isPDFFile(fileName)) {
         // PDF - click to open in new tab
         mediaHtml = `
-          <div class="msg-pdf-wrapper" data-pdf-url="${esc(image)}" style="display:inline-block;margin-top:6px;max-width:100%;">
+          <div class="msg-pdf-wrapper" data-pdf-url="${esc(mediaUrl)}" style="display:inline-block;margin-top:6px;max-width:100%;">
             <div class="msg-pdf-preview" style="cursor:pointer;display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--surface-hover);border-radius:8px;border:1px solid var(--border);max-width:280px;">
               <span style="font-size:16px;">📕</span>
               <div style="flex:1;min-width:0;">
@@ -4553,7 +4569,7 @@ function addMsg(name, text, type = '', image = null, timestamp = null, isHistory
         // Office files - click to download with progress
         const icon = isDocFile(fileName) ? '📝' : '📊';
         mediaHtml = `
-          <div class="msg-office-wrapper" data-office-url="${esc(image)}" data-file-name="${esc(fileName)}" style="display:inline-block;margin-top:6px;max-width:100%;">
+          <div class="msg-office-wrapper" data-office-url="${esc(mediaUrl)}" data-file-name="${esc(fileName)}" style="display:inline-block;margin-top:6px;max-width:100%;">
             <div class="msg-file" style="cursor:pointer;">
               <span class="msg-file-icon">${icon}</span>
               <span class="msg-file-name">${esc(fileName)}</span>
@@ -4564,7 +4580,7 @@ function addMsg(name, text, type = '', image = null, timestamp = null, isHistory
       } else {
         // Other file attachment - add progress bar
         mediaHtml = `
-          <div class="msg-file-wrapper" data-file-url="${esc(image)}" data-file-name="${esc(fileName)}" style="display:inline-block;margin-top:6px;max-width:100%;cursor:pointer;">
+          <div class="msg-file-wrapper" data-file-url="${esc(mediaUrl)}" data-file-name="${esc(fileName)}" style="display:inline-block;margin-top:6px;max-width:100%;cursor:pointer;">
             <div class="msg-file" style="cursor:pointer;">
               <span class="msg-file-icon">${getFileIcon(fileName)}</span>
               <span class="msg-file-name">${esc(fileName)}</span>
@@ -4731,18 +4747,23 @@ function addMsgOld(name, text, type = '', image = null, timestamp = null, fileNa
     let mediaHtml = '';
     if (image) {
       // Parse video format: thumbnailUrl::VIDEO::videoUrl (new) or thumbUrl|VIDEO|videoUrl (old fallback)
-      const hasNewSep = image.includes('::VIDEO::');
-      const hasOldSep = image.includes('|VIDEO|');
+      const rawImage = typeof image === 'string' ? image : '';
+      const hasNewSep = rawImage.includes('::VIDEO::');
+      const hasOldSep = rawImage.includes('|VIDEO|');
       const isVideoCombined = hasNewSep || hasOldSep;
       const isVideoMedia = isVideoFile(fileName);
 
-      if (isVideoMedia && isVideoCombined) {
-        const parts = hasNewSep ? image.split('::VIDEO::') : image.split('|VIDEO|');
-        const [thumbUrl, videoUrl] = parts;
+      // The image field is attacker controlled - only http(s) URLs are allowed
+      const parts = isVideoCombined ? (hasNewSep ? rawImage.split('::VIDEO::') : rawImage.split('|VIDEO|')) : [];
+      const mediaUrl = isVideoCombined ? '' : safeUrl(rawImage);
+      const thumbUrl = parts.length > 1 ? safeUrl(parts[0]) : '';
+      const videoUrl = parts.length > 1 ? safeUrl(parts[1]) : '';
+
+      if (isVideoMedia && isVideoCombined && thumbUrl && videoUrl) {
         mediaHtml = `
           <div class="msg-video-wrapper" style="position:relative;display:inline-block;margin-top:6px;max-width:280px;">
-            <img class="msg-image" src="${thumbUrl}" alt="Video thumbnail" style="border-radius:8px;cursor:pointer;max-width:100%;max-height:160px;" onclick="event.stopPropagation();const v=this.closest('.msg-video-wrapper').querySelector('video');if(v.paused){v.style.display='block';v.play();this.parentElement.style.display='none';}else{v.pause();v.style.display='none';this.style.display='block';}">
-            <video class="msg-video" src="${videoUrl}" style="display:none;width:100%;max-height:300px;border-radius:8px;" controls playsinline preload="none" onclick="event.stopPropagation();this.parentElement.style.display='none';this.previousElementSibling.style.display='block';"></video>
+            <img class="msg-image" src="${esc(thumbUrl)}" alt="Video thumbnail" style="border-radius:8px;cursor:pointer;max-width:100%;max-height:160px;" onclick="event.stopPropagation();const v=this.closest('.msg-video-wrapper').querySelector('video');if(v.paused){v.style.display='block';v.play();this.parentElement.style.display='none';}else{v.pause();v.style.display='none';this.style.display='block';}">
+            <video class="msg-video" src="${esc(videoUrl)}" style="display:none;width:100%;max-height:300px;border-radius:8px;" controls playsinline preload="none" onclick="event.stopPropagation();this.parentElement.style.display='none';this.previousElementSibling.style.display='block';"></video>
           </div>
         `;
       } else if (isVideoMedia) {
@@ -4753,14 +4774,14 @@ function addMsgOld(name, text, type = '', image = null, timestamp = null, fileNa
               <span style="font-size:28px;">🎬</span>
               <span style="font-size:11px;color:var(--text-muted);">${esc(fileName || 'video')}</span>
             </div>
-            <video class="msg-video" src="${image}" style="display:none;width:100%;max-height:300px;border-radius:8px;" controls playsinline preload="none" onclick="event.stopPropagation();this.parentElement.style.display='none';this.previousElementSibling.style.display='flex';"></video>
+            <video class="msg-video" src="${esc(mediaUrl)}" style="display:none;width:100%;max-height:300px;border-radius:8px;" controls playsinline preload="none" onclick="event.stopPropagation();this.parentElement.style.display='none';this.previousElementSibling.style.display='flex';"></video>
           </div>
         `;
-      } else if (isImageFile(fileName)) {
-        mediaHtml = `<img class="msg-image" src="${image}" alt="Image">`;
+      } else if (isImageFile(fileName) && mediaUrl) {
+        mediaHtml = `<img class="msg-image" src="${esc(mediaUrl)}" alt="Image">`;
       } else if (isPDFFile(fileName)) {
         mediaHtml = `
-          <div class="msg-pdf-wrapper" data-pdf-url="${esc(image)}" style="display:inline-block;margin-top:6px;max-width:100%;">
+          <div class="msg-pdf-wrapper" data-pdf-url="${esc(mediaUrl)}" style="display:inline-block;margin-top:6px;max-width:100%;">
             <div class="msg-pdf-preview" style="cursor:pointer;display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--surface-hover);border-radius:8px;border:1px solid var(--border);max-width:280px;">
               <span style="font-size:16px;">📕</span>
               <div style="flex:1;min-width:0;">
@@ -4776,7 +4797,7 @@ function addMsgOld(name, text, type = '', image = null, timestamp = null, fileNa
       } else if (isDocFile(fileName) || isXlsxFile(fileName)) {
         const icon = isDocFile(fileName) ? '📝' : '📊';
         mediaHtml = `
-          <div class="msg-office-wrapper" data-office-url="${esc(image)}" data-file-name="${esc(fileName)}" style="display:inline-block;margin-top:6px;max-width:100%;">
+          <div class="msg-office-wrapper" data-office-url="${esc(mediaUrl)}" data-file-name="${esc(fileName)}" style="display:inline-block;margin-top:6px;max-width:100%;">
             <div class="msg-file" style="cursor:pointer;">
               <span class="msg-file-icon">${icon}</span>
               <span class="msg-file-name">${esc(fileName)}</span>
@@ -4786,7 +4807,7 @@ function addMsgOld(name, text, type = '', image = null, timestamp = null, fileNa
         `;
       } else {
         mediaHtml = `
-          <div class="msg-file-wrapper" data-file-url="${esc(image)}" data-file-name="${esc(fileName)}" style="display:inline-block;margin-top:6px;max-width:100%;cursor:pointer;">
+          <div class="msg-file-wrapper" data-file-url="${esc(mediaUrl)}" data-file-name="${esc(fileName)}" style="display:inline-block;margin-top:6px;max-width:100%;cursor:pointer;">
             <div class="msg-file" style="cursor:pointer;">
               <span class="msg-file-icon">${getFileIcon(fileName)}</span>
               <span class="msg-file-name">${esc(fileName)}</span>
@@ -4887,7 +4908,12 @@ function loadMoreMessages() {
 
   // Get the oldest message timestamp (cursor)
   const msgs = chatMessages.querySelectorAll('.msg[data-id]');
-  if (msgs.length === 0) return;
+  if (msgs.length === 0) {
+    // Nothing to page back to - reset the flag, otherwise pagination would be
+    // disabled for the rest of the session.
+    isLoadingMore = false;
+    return;
+  }
 
   // ASC: oldest is msgs[0], DESC: oldest is msgs[msgs.length - 1]
   const oldestMsg = messageOrder === 'asc' ? msgs[0] : msgs[msgs.length - 1];
@@ -4905,10 +4931,32 @@ function loadMoreMessages() {
   }
 }
 
+// HTML-escape a value for use in a text node *or* in a quoted attribute.
+// Quotes must be escaped as well: without them a value like
+//   x" onmouseover="alert(1)
+// would break out of the attribute it is interpolated into.
 function esc(str) {
-  const d = document.createElement('div');
-  d.textContent = str;
-  return d.innerHTML;
+  return String(str ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+// Only http(s) URLs may end up in a src/href. Anything else (javascript:,
+// data:, garbage) is dropped - the message is then rendered as a plain file.
+function safeUrl(url) {
+  if (typeof url !== 'string') return '';
+  const trimmed = url.trim();
+  if (!/^https?:\/\//i.test(trimmed)) return '';
+  try {
+    const parsed = new URL(trimmed);
+    if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') return '';
+    return parsed.href;
+  } catch {
+    return '';
+  }
 }
 
 function isImageFile(filename) {

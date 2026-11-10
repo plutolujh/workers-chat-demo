@@ -61,6 +61,13 @@
 // KV to serve assets.)
 import HTML from "./chat.html";
 import { pickInitialPage } from "./backlog.mjs";
+import {
+  MAX_MESSAGE_BYTES,
+  MAX_ASR_BODY_BYTES,
+  byteLength,
+  sanitizeMediaUrl,
+  sanitizeQuote
+} from "./sanitize.mjs";
 
 // Version from git commit hash - replaced at build time via wrangler.toml
 const VERSION = "b65d967";
@@ -233,61 +240,6 @@ async function handleApiRequest(path, request, env) {
       });
     }
 
-    case "file": {
-      // GET /api/file/:id - proxy file from shotsync so Office Online can access it
-      // shotsync /share/ URLs are signed and not publicly accessible,
-      // so we proxy through the worker using the stored token
-      if (request.method !== "GET") {
-        return new Response("Method not allowed", {status: 405});
-      }
-
-      const fileId = path[1];
-      if (!fileId) {
-        return new Response("File ID required", {status: 400});
-      }
-
-      const shotsyncUrl = env.SHOTSYNC_URL || "https://shotsync.hao123456.cn";
-      const shotsyncToken = env.SHOTSYNC_TOKEN;
-
-      if (!shotsyncToken) {
-        return new Response("Shotsync not configured", {status: 500});
-      }
-
-      try {
-        // Try shotsync's file download endpoint
-        const fileResponse = await fetch(`${shotsyncUrl}/api/file/${encodeURIComponent(fileId)}`, {
-          headers: {
-            "Authorization": `Bearer ${shotsyncToken}`
-          }
-        });
-
-        if (!fileResponse.ok) {
-          console.error("shotsync file fetch failed:", fileResponse.status, await fileResponse.text());
-          return new Response("File not found", {status: fileResponse.status});
-        }
-
-        const contentType = fileResponse.headers.get("Content-Type") || "application/octet-stream";
-        const contentDisposition = fileResponse.headers.get("Content-Disposition");
-
-        const headers = {
-          "Content-Type": contentType,
-          "Cache-Control": "public, max-age=3600",
-          "Access-Control-Allow-Origin": "*"
-        };
-        if (contentDisposition) {
-          headers["Content-Disposition"] = contentDisposition;
-        }
-
-        return new Response(fileResponse.body, {
-          status: fileResponse.status,
-          headers
-        });
-      } catch (err) {
-        console.error("file proxy error:", err);
-        return new Response("Internal error", {status: 500});
-      }
-    }
-
     case "room": {
       // Request for `/api/room/...`.
 
@@ -379,6 +331,30 @@ async function handleApiRequest(path, request, env) {
         });
       }
 
+      // This endpoint spends our MiniMax credits, so it must not be usable as
+      // an open proxy: reject oversized bodies before they are buffered and
+      // rate limit it per IP.
+      const contentLength = parseInt(request.headers.get("Content-Length") || "0");
+      if (contentLength > MAX_ASR_BODY_BYTES) {
+        return new Response(JSON.stringify({
+          error: { message: `Audio too large (max ${Math.floor(MAX_ASR_BODY_BYTES / 1024 / 1024)} MB)`, type: "invalid_request_error" }
+        }), {
+          status: 413,
+          headers: {"Content-Type": "application/json"}
+        });
+      }
+
+      const ip = request.headers.get("CF-Connecting-IP") || "unknown";
+      const cooldown = await consumeApiQuota(env, "asr:" + ip);
+      if (cooldown > 0) {
+        return new Response(JSON.stringify({
+          error: { message: `Too many requests, try again in ${Math.ceil(cooldown)}s`, type: "rate_limit_error" }
+        }), {
+          status: 429,
+          headers: {"Content-Type": "application/json", "Retry-After": String(Math.ceil(cooldown))}
+        });
+      }
+
       try {
         // Forward the audio to MiniMax ASR API
         const miniMaxUrl = "https://api.minimaxi.com/v1/speech_to_text";
@@ -419,6 +395,23 @@ async function handleApiRequest(path, request, env) {
 
     default:
       return new Response("Not found", {status: 404});
+  }
+}
+
+// Consume one unit of quota for the given key and return how many seconds the
+// caller has to wait (0 = allowed). Uses a separate RateLimiter instance per
+// key so that e.g. speech-to-text requests do not eat the chat quota.
+async function consumeApiQuota(env, key) {
+  try {
+    const limiterId = env.limiters.idFromName(key);
+    const limiter = env.limiters.get(limiterId);
+    const response = await limiter.fetch("https://dummy-url", {method: "POST"});
+    const cooldown = parseFloat(await response.text());
+    return Number.isFinite(cooldown) && cooldown > 0 ? cooldown : 0;
+  } catch (err) {
+    // If the limiter is unavailable, do not block the request.
+    console.error("quota check failed:", err);
+    return 0;
   }
 }
 
@@ -675,18 +668,30 @@ export class ChatRoom {
       }
 
       // Construct sanitized message for storage and broadcast.
+      // The client is not trusted: media URLs have to point at our own upload
+      // service and every field is length limited.
+      const rawImage = data.image;
+      const mediaUrl = sanitizeMediaUrl(rawImage, this.env);
+      if (rawImage && !mediaUrl) {
+        // Keep the text, drop the attachment - and tell the sender why.
+        webSocket.send(JSON.stringify({error: "Attachment URL is not allowed."}));
+      }
       data = {
         name: session.name,
         message: "" + (data.message || ""),
-        image: data.image || null,
-        fileName: data.fileName || "",
-        quote: data.quote || null
+        image: mediaUrl,
+        fileName: "" + (data.fileName || ""),
+        quote: sanitizeQuote(data.quote)
       };
 
       // Block people from sending overly long messages. This is also enforced on the client,
       // so to trigger this the user must be bypassing the client code.
       if (data.message.length > 2000) {
         webSocket.send(JSON.stringify({error: "Message too long (max 2000 chars)."}));
+        return;
+      }
+      if (data.fileName.length > 200) {
+        webSocket.send(JSON.stringify({error: "File name too long (max 200 chars)."}));
         return;
       }
 
@@ -696,13 +701,22 @@ export class ChatRoom {
       data.timestamp = Math.max(Date.now(), this.lastTimestamp + 1);
       this.lastTimestamp = data.timestamp;
 
-      // Broadcast the message to all other WebSockets.
       let dataStr = JSON.stringify(data);
-      this.broadcast(dataStr);
 
-      // Save message.
+      // Durable Object storage rejects values larger than 128 KB - reject such
+      // messages here instead of broadcasting something that can never be stored.
+      if (byteLength(dataStr) > MAX_MESSAGE_BYTES) {
+        webSocket.send(JSON.stringify({error: "Message too large."}));
+        return;
+      }
+
+      // Save the message first, then broadcast it. Otherwise a failing write
+      // would deliver a message that nobody sees after a reload.
       let key = new Date(data.timestamp).toISOString();
       await this.storage.put(key, dataStr);
+
+      // Broadcast the message to all other WebSockets.
+      this.broadcast(dataStr);
     } catch (err) {
       // Report any exceptions directly back to the client. As with our handleErrors() this
       // probably isn't what you'd want to do in production, but it's convenient when testing.
