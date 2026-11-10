@@ -2564,6 +2564,8 @@ orderToggle?.addEventListener('click', () => {
   updateOrderToggleUI();
   // Toggle message order by re-rendering
   toggleMessageOrder();
+  // Put the cursor back into the input box instead of leaving it on the button
+  chatInput.focus();
 });
 
 function toggleMessageOrder() {
