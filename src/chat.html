@@ -161,6 +161,18 @@ body {
   font-weight: 600;
 }
 
+/* "change name" shortcut in the header (shown when the name was remembered) */
+.header-name-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--accent);
+  font-size: 12px;
+  text-decoration: underline;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
 .header-right {
   display: flex;
   align-items: center;
@@ -1568,6 +1580,36 @@ body {
   color: var(--bg);
 }
 
+/* "Entering as <name>" hint in the room overlay */
+.remembered-hint {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  background: var(--accent-glow);
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: 12px;
+  padding: 6px 12px;
+  margin-bottom: 14px;
+  font-size: 13px;
+}
+
+.remembered-hint .hint-name {
+  font-weight: 600;
+}
+
+.link-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--accent);
+  font-size: 13px;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
 /* ===== RULES BOX ===== */
 .rules-box {
   background: var(--surface-hover);
@@ -2177,6 +2219,7 @@ button:focus-visible {
     </div>
     <span id="room-badge" class="room-badge" style="display:none"></span>
     <span id="env-badge" class="env-badge" style="display:none"></span>
+    <button id="header-change-name" class="header-name-btn" style="display:none" data-i18n="change_name">change name</button>
   </div>
   <div class="header-center">
     <div id="mobile-online" class="mobile-online">
@@ -2340,6 +2383,11 @@ button:focus-visible {
     <div class="modal-icon">🚪</div>
     <h1 class="modal-title" data-i18n="room_title">Choose a Room</h1>
     <p class="modal-sub" data-i18n="room_sub">Join a public room or create a private one</p>
+    <div id="remembered-hint" class="remembered-hint">
+      <span data-i18n="entering_as">Entering as</span>
+      <span id="remembered-hint-name" class="hint-name"></span>
+      <button type="button" id="change-name-btn" class="link-btn" data-i18n="change_name">change name</button>
+    </div>
     <form id="room-form">
       <input type="text" id="room-input" class="modal-input" placeholder="room-name" maxlength="32" autocomplete="off">
       <button type="submit" class="modal-btn" data-i18n="join">Join Room</button>
@@ -2406,6 +2454,8 @@ const i18n = {
     minutes_left: '分钟）',
     hours_left: '小时）',
     expired: '已过期，请重新输入',
+    entering_as: 'Entering as',
+    change_name: 'change name',
   },
   zh: {
     name_title: '加入聊天',
@@ -2441,6 +2491,8 @@ const i18n = {
     enter_room: '进入房间',
     link_copied: '链接已复制！',
     name_placeholder: '你的名字',
+    entering_as: '当前身份',
+    change_name: '换个名字',
   }
 };
 
@@ -3246,16 +3298,17 @@ document.getElementById('name-form').addEventListener('submit', e => {
     const remember = document.getElementById('remember-checkbox').checked;
     if (remember) {
       // Get expiry from wheel picker (data-value on selected item)
-      const selectedWheel = document.querySelector('.wheel-item.selected');
-      const expiry = selectedWheel ? parseInt(selectedWheel.dataset.value) : 60;
+      const expiry = wheelPicker.getValue();
       const expiryTime = Date.now() + expiry * 60 * 1000;
       localStorage.setItem('chat-username', username);
       localStorage.setItem('chat-username-expiry', expiryTime.toString());
+      localStorage.setItem('chat-remember-minutes', expiry.toString());
     } else {
       localStorage.removeItem('chat-username');
       localStorage.removeItem('chat-username-expiry');
+      localStorage.removeItem('chat-remember-minutes');
     }
-    
+
     nameOverlay.classList.add('hidden');
     roomOverlay.classList.remove('hidden');
     // Check hash for direct room join
@@ -3267,53 +3320,70 @@ document.getElementById('name-form').addEventListener('submit', e => {
   }
 });
 
-// Check for saved username on load
-function checkSavedUsername() {
+// The remembered name, if it is still valid. Expired names are dropped.
+function getRememberedUser() {
   const savedName = localStorage.getItem('chat-username');
   const savedExpiry = localStorage.getItem('chat-username-expiry');
-  
-  if (savedName && savedExpiry) {
-    const expiryTime = parseInt(savedExpiry);
+  if (!savedName || !savedExpiry) return null;
+
+  const expiryTime = parseInt(savedExpiry);
+  if (!expiryTime || Date.now() >= expiryTime) {
+    localStorage.removeItem('chat-username');
+    localStorage.removeItem('chat-username-expiry');
+    return null;
+  }
+
+  return {
+    name: savedName,
+    expiry: expiryTime,
+    minutes: parseInt(localStorage.getItem('chat-remember-minutes')) || 60
+  };
+}
+
+// Check for saved username on load
+function checkSavedUsername() {
+  const remembered = getRememberedUser();
+
+  if (remembered) {
+    const { name: savedName, expiry: expiryTime } = remembered;
     const now = Date.now();
-    
-    if (now < expiryTime) {
-      // Valid saved username
-      const nameInput = document.getElementById('name-input');
-      nameInput.value = savedName;
-      
-      const remaining = expiryTime - now;
-      const remainingMin = Math.ceil(remaining / 60000);
-      let timeStr;
-      if (remainingMin >= 60) {
-        timeStr = (remainingMin / 60).toFixed(1) + t('hours_left');
-      } else {
-        timeStr = remainingMin + t('minutes_left');
-      }
-      
-      const badge = document.getElementById('remembered-badge');
-      const badgeName = document.getElementById('remembered-name');
-      badgeName.textContent = savedName;
-      badge.title = t('remembered_for') + timeStr;
-      badge.style.display = 'inline-flex';
-      
-      document.getElementById('remember-checkbox').checked = true;
-      // row always visible now
-      
-      // Click badge to clear saved name
-      badge.onclick = () => {
-        localStorage.removeItem('chat-username');
-        localStorage.removeItem('chat-username-expiry');
-        nameInput.value = '';
-        badge.style.display = 'none';
-        document.getElementById('remember-checkbox').checked = false;
-      };
-      return;
+
+    // Valid saved username
+    const nameInput = document.getElementById('name-input');
+    nameInput.value = savedName;
+
+    const remaining = expiryTime - now;
+    const remainingMin = Math.ceil(remaining / 60000);
+    let timeStr;
+    if (remainingMin >= 60) {
+      timeStr = (remainingMin / 60).toFixed(1) + t('hours_left');
     } else {
-      // Expired, clear it
+      timeStr = remainingMin + t('minutes_left');
+    }
+
+    const badge = document.getElementById('remembered-badge');
+    const badgeName = document.getElementById('remembered-name');
+    badgeName.textContent = savedName;
+    badge.title = t('remembered_for') + timeStr;
+    badge.style.display = 'inline-flex';
+
+    document.getElementById('remember-checkbox').checked = true;
+    // row always visible now
+    // Restore the duration the user picked last time
+    wheelPicker.setValue(remembered.minutes);
+
+    // Click badge to clear saved name
+    badge.onclick = () => {
       localStorage.removeItem('chat-username');
       localStorage.removeItem('chat-username-expiry');
-    }
+      localStorage.removeItem('chat-remember-minutes');
+      nameInput.value = '';
+      badge.style.display = 'none';
+      document.getElementById('remember-checkbox').checked = false;
+    };
+    return remembered;
   }
+  return null;
 }
 
 // Clear badge when user types in name input
@@ -3325,18 +3395,18 @@ document.getElementById('name-input').addEventListener('input', () => {
 });
 
 // ===== WHEEL PICKER =====
-(function() {
+const wheelPicker = (function() {
   const container = document.getElementById('wheel-container');
-  if (!container) return;
-  
+  if (!container) return { getValue: () => 60, setValue: () => {} };
+
   const itemHeight = 28;
   const visibleCenter = 23; // center of the 46px container = 23px from top
-  
+
   function updateSelection() {
     const items = container.querySelectorAll('.wheel-item');
     const scrollTop = container.scrollTop;
     const slotPadding = 9;
-    
+
     items.forEach((item, i) => {
       // Item top relative to slot content = slotPadding + i * itemHeight
       // Item center = slotPadding + i * itemHeight + itemHeight/2
@@ -3349,9 +3419,9 @@ document.getElementById('name-input').addEventListener('input', () => {
       }
     });
   }
-  
+
   container.addEventListener('scroll', updateSelection, { passive: true });
-  
+
   container.querySelectorAll('.wheel-item').forEach(item => {
     item.addEventListener('click', () => {
       const idx = Array.from(container.querySelectorAll('.wheel-item')).indexOf(item);
@@ -3363,14 +3433,69 @@ document.getElementById('name-input').addEventListener('input', () => {
       container.scrollTo({ top: idx * itemHeight, behavior: 'instant' });
     });
   });
-  
+
   // Initialize scroll position so first item (30分钟) is centered
   container.scrollTop = 0;
   updateSelection();
+
+  // Currently selected duration in minutes
+  function getValue() {
+    const selected = container.querySelector('.wheel-item.selected');
+    return selected ? parseInt(selected.dataset.value) : 60;
+  }
+
+  // Select a duration (in minutes) programmatically
+  function setValue(minutes) {
+    const items = Array.from(container.querySelectorAll('.wheel-item'));
+    const idx = items.findIndex(item => parseInt(item.dataset.value) === minutes);
+    if (idx < 0) return;
+    container.scrollTo({ top: idx * itemHeight, behavior: 'instant' });
+    updateSelection();
+  }
+
+  return { getValue, setValue };
 })();
 
 // Initialize saved username check on page load
-checkSavedUsername();
+const rememberedUser = checkSavedUsername();
+
+// The user asked to change the name explicitly - show the name selection
+// instead of going straight back in.
+const forceNamePrompt = sessionStorage.getItem('chat-force-name') === '1';
+sessionStorage.removeItem('chat-force-name');
+
+// A remembered name that has not expired yet takes the user straight back in
+// instead of asking for a name again.
+if (rememberedUser && !forceNamePrompt) {
+  username = rememberedUser.name;
+  nameOverlay.classList.add('hidden');
+
+  if (location.hash.length > 1) {
+    // Same room as before - join it right away.
+    roomname = location.hash.slice(1);
+    roomOverlay.classList.add('hidden');
+    document.getElementById('header-change-name').style.display = 'inline-block';
+    setTimeout(() => startChat(), 0);
+  } else {
+    // No room in the URL yet - ask for one, but keep the remembered name.
+    roomOverlay.classList.remove('hidden');
+    document.getElementById('remembered-hint-name').textContent = rememberedUser.name;
+    document.getElementById('remembered-hint').style.display = 'flex';
+  }
+}
+
+// "change name" in the room overlay brings the name selection back
+document.getElementById('change-name-btn').addEventListener('click', () => {
+  roomOverlay.classList.add('hidden');
+  nameOverlay.classList.remove('hidden');
+  document.getElementById('name-input').focus();
+});
+
+// "change name" in the header reloads with the name selection open
+document.getElementById('header-change-name').addEventListener('click', () => {
+  sessionStorage.setItem('chat-force-name', '1');
+  location.reload();
+});
 // Show remember row when checkbox is checked, hide otherwise
 document.getElementById('remember-checkbox').addEventListener('change', function() {
   const row = document.querySelector('.remember-row');
